@@ -284,7 +284,7 @@ html.moren-wallpaper [data-conversation-content] {
           h('pre', { className: 'moren-code' }, `# 让宿主重新注册本模式（改了配置后）\ncurl -s -X POST http://127.0.0.1:3080/dsh-moren/api -H 'content-type: application/json' -d '{"op":"redeclare"}'`)))
     }
 
-    function Rollback({ data, run, busy }) {
+    function Rollback({ data, run, busy, onRewind, rewindBusy }) {
       const rollback = data.rollback ?? {}
       const snapshots = rollback.snapshots ?? []
       const purge = rollback.purge ?? {}
@@ -312,7 +312,12 @@ html.moren-wallpaper [data-conversation-content] {
                     if (window.confirm(`恢复快照 ${snapshot.id}？\n恢复前会自动创建 pre-restore 快照。`)) run('restore', { id: snapshot.id })
                   },
                 }, '恢复')))))))
-        , h('p', { className: 'moren-note' }, '恢复会覆盖 profile 的 patch/package/prompt-inject 与已安装预设；需要重启 dsh 才能让宿主补丁状态完全回到快照点。'))
+        , h('p', { className: 'moren-note' }, '恢复会覆盖 profile 的 patch/package/prompt-inject 与已安装预设；需要重启 dsh 才能让宿主补丁状态完全回到快照点。'),
+        h(Card, { title: '对话回退' },
+          h('p', null, '文件快照回退不处理聊天消息。这里直接调用 DSH 的 /rewind 命令，撤回上一轮；不依赖 purge 输入框按钮。'),
+          h('div', { className: 'moren-actions' },
+            h('button', { className: 'moren-btn primary', disabled: busy || rewindBusy, onClick: onRewind }, rewindBusy ? h('span', { className: 'moren-spin' }) : '回退上一句')),
+          h('p', { className: 'moren-note' }, '如果只想把上一句放回输入框，用 purge 输入框右侧的回退按钮；它的 session 绑定已由 Moren 兼容层修复。')))
     }
 
     const TOOL_ROWS = [
@@ -368,7 +373,7 @@ html.moren-wallpaper [data-conversation-content] {
     function installPurgeRewindCompat(host) {
       const workspace = host.uiWorkspace
       const sessions = host.sessions
-      const uiSession = host.uiSession
+      const uiSession = host.uiSession || host.get?.('uiSession')
       if (!workspace || !sessions || workspace.selection) return () => {}
       const activeSessionId = () => {
         try {
@@ -517,12 +522,13 @@ html.moren-wallpaper [data-conversation-content] {
           h('p', { className: 'moren-note' }, '如果你在使用桌面客户端而不是 Web，这个入口只在 Web GUI 生效。')))
     }
 
-    function Page() {
+    function Page({ onRewind } = {}) {
       const [tab, setTab] = useState('status')
       const [data, setData] = useState(null)
       const [error, setError] = useState(null)
       const [busy, setBusy] = useState(false)
       const [notice, setNotice] = useState(null)
+      const [rewindBusy, setRewindBusy] = useState(false)
 
       const load = useCallback(async () => {
         try {
@@ -550,6 +556,21 @@ html.moren-wallpaper [data-conversation-content] {
           setBusy(false)
         }
       }, [load])
+
+      const doRewind = useCallback(async () => {
+        if (!onRewind) return
+        setRewindBusy(true)
+        setNotice(null)
+        try {
+          await onRewind()
+          setNotice({ ok: true, text: '已回退上一轮' })
+          await load()
+        } catch (cause) {
+          setNotice({ ok: false, text: String(cause?.message ?? cause) })
+        } finally {
+          setRewindBusy(false)
+        }
+      }, [onRewind, load])
 
       const tabs = [
         ['status', '状态'], ['mode', '模式'], ['wallpaper', '壁纸'], ['rollback', '回退'], ['tools', '能力'], ['compat', '兼容'], ['docs', '教程'],
@@ -589,7 +610,7 @@ html.moren-wallpaper [data-conversation-content] {
         data && tab === 'status' ? h(Status, { data }) : null,
         data && tab === 'mode' ? h(Mode, { data }) : null,
         data && tab === 'wallpaper' ? h(Wallpaper, { data, notify: setNotice, refresh: load }) : null,
-        data && tab === 'rollback' ? h(Rollback, { data, run, busy }) : null,
+        data && tab === 'rollback' ? h(Rollback, { data, run, busy, onRewind: doRewind, rewindBusy }) : null,
         data && tab === 'tools' ? h(Tools, { data }) : null,
         data && tab === 'compat' ? h(Compat, { data }) : null,
         data && tab === 'docs' ? h(Docs, { data }) : null,
@@ -617,7 +638,40 @@ html.moren-wallpaper [data-conversation-content] {
         }, 'moren: wallpaper layer')
         const t = ctx.locale.bind(NS)
 
-        ctx.inject(['uiWorkspace', 'sessions', 'uiSession'], (host) => {
+        const currentSessionId = () => {
+          try {
+            const id = ctx.get('uiSession')?.current?.getSnapshot?.()?.key
+            if (id) return id
+          } catch { /* ignore */ }
+          try {
+            const snapshot = ctx.get('sessions')?.list?.getSnapshot?.()
+            const rows = Object.values(snapshot?.byId ?? {})
+            return rows.find((row) => (row?.retainedBy?.mainView ?? 0) > 0)?.id ?? ''
+          } catch { return '' }
+        }
+        const onRewind = async () => {
+          const id = currentSessionId()
+          if (!id) throw new Error('没有当前会话')
+          if (!ctx.remote?.commands?.execute) throw new Error('命令服务不可用')
+          const result = await ctx.remote.commands.execute(id, '/rewind once', [])
+          if (result && (result.ok === false || result.kind === 'error')) throw new Error(result.text || result.error || '回退失败')
+          return result
+        }
+
+        // Install as early as possible (before the conversation composer first
+        // renders), then re-check once the optional services are injected.
+        const immediate = (() => {
+          try {
+            const workspace = ctx.get('uiWorkspace')
+            const sessions = ctx.get('sessions')
+            if (!workspace || !sessions) return undefined
+            return installPurgeRewindCompat({ uiWorkspace: workspace, sessions, uiSession: ctx.get('uiSession') })
+          } catch {
+            return undefined
+          }
+        })()
+        if (immediate) ctx.effect(() => immediate, 'moren: purge rewind session shim (early)')
+        ctx.inject(['uiWorkspace', 'sessions'], (host) => {
           host.effect(() => installPurgeRewindCompat(host), 'moren: purge rewind session shim')
         })
 
@@ -632,7 +686,7 @@ html.moren-wallpaper [data-conversation-content] {
         ctx.slots.inject('main', () => ctx.slots.register({
           name: 'main',
           key: 'moren-unlimited',
-          inject: () => ({ t }),
+          inject: () => ({ t, onRewind }),
         }, Page))
       },
     }
