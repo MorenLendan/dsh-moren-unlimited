@@ -124,6 +124,9 @@ window.__ModuleLoader__.load({
 .moren-hero .sub { color: var(--dsw-alias-label-secondary, #777); font-size: .85em; margin-left: auto; }
 .moren-hero .ops { display: flex; gap: 8px; flex-wrap: wrap; width: 100%; }
 @media (max-width: 700px) { .moren-line .hint { margin-left: 0; text-align: left; } .moren-page { padding: 16px 14px 40px; } }
+.moren-rewind-btn { appearance:none; display:inline-flex; align-items:center; gap:4px; height:28px; padding:0 8px; border:0; border-radius:8px; background:transparent; color:var(--dsw-alias-label-secondary, currentColor); font:12px/1 var(--ds-font-sans, system-ui, sans-serif); cursor:pointer; }
+.moren-rewind-btn:hover:not(:disabled) { background:var(--dsw-alias-interactive-bg-hover, rgba(127,127,127,.12)); color:var(--dsw-alias-label-primary, currentColor); }
+.moren-rewind-btn:disabled { opacity:.4; cursor:default; }
 .moren-wallpaper-preview { width: 100%; max-height: 260px; object-fit: cover; border-radius: 10px; border: 1px solid var(--dsw-alias-border-l1, rgba(127,127,127,.25)); display: block; }
 .moren-wallpaper-empty { padding: 28px 12px; text-align: center; color: var(--dsw-alias-label-secondary, #777); border: 1px dashed var(--dsw-alias-border-l1, rgba(127,127,127,.3)); border-radius: 10px; }
 .moren-slider { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .9em; }
@@ -413,6 +416,32 @@ html.moren-wallpaper [data-conversation-content] {
       }
     }
 
+    function MorenRewind({ onRewind }) {
+      const [busy, setBusy] = useState(false)
+      const [notice, setNotice] = useState('')
+      const run = async () => {
+        if (busy) return
+        setBusy(true)
+        setNotice('')
+        try {
+          await onRewind()
+          setNotice('已回退')
+        } catch (cause) {
+          setNotice(String(cause?.message ?? cause))
+        } finally {
+          setBusy(false)
+        }
+      }
+      return h('button', {
+        type: 'button',
+        className: 'moren-rewind-btn',
+        title: notice || '回退上一句',
+        disabled: busy,
+        onMouseDown: (event) => event.preventDefault(),
+        onClick: run,
+      }, busy ? '回退中…' : '回退')
+    }
+
     function Wallpaper({ data, notify, refresh }) {
       const current = data.wallpaper ?? {}
       const [opacity, setOpacity] = useState(current.opacity ?? 100)
@@ -652,10 +681,30 @@ html.moren-wallpaper [data-conversation-content] {
         const onRewind = async () => {
           const id = currentSessionId()
           if (!id) throw new Error('没有当前会话')
-          if (!ctx.remote?.commands?.execute) throw new Error('命令服务不可用')
-          const result = await ctx.remote.commands.execute(id, '/rewind once', [])
-          if (result && (result.ok === false || result.kind === 'error')) throw new Error(result.text || result.error || '回退失败')
-          return result
+          let data
+          try {
+            const response = await fetch(new URL('dsh-purge/rewind', appBase()), {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ sessionId: id, mode: 'once' }),
+            })
+            data = await response.json().catch(() => ({}))
+            if (!response.ok || !data?.ok) throw new Error(data?.error || `回退失败 HTTP ${response.status}`)
+          } catch (cause) {
+            if (!ctx.remote?.commands?.execute) throw cause
+            const result = await ctx.remote.commands.execute(id, '/rewind once', [])
+            if (result && (result.ok === false || result.kind === 'error')) throw new Error(result.text || result.error || '回退失败')
+            return result
+          }
+          try {
+            const conversation = ctx.get('conversation')
+            const sessions = ctx.get('sessions')
+            const scope = sessions?.scope?.(id)
+            const input = conversation?.input?.shell?.(id) || conversation?.input?.for?.(scope)
+            if (data?.text) input?.setDraft?.(data.text)
+          } catch { /* draft is best effort */ }
+          try { ctx.get('uiWorkspace')?.openSession?.(id) } catch { /* ignore */ }
+          return data
         }
 
         // Install as early as possible (before the conversation composer first
@@ -674,6 +723,24 @@ html.moren-wallpaper [data-conversation-content] {
         ctx.inject(['uiWorkspace', 'sessions'], (host) => {
           host.effect(() => installPurgeRewindCompat(host), 'moren: purge rewind session shim')
         })
+
+        ctx.slots.inject('conversation.input.right', () => ctx.slots.register({
+          name: 'conversation.input.right',
+          id: 'moren-rewind',
+          order: 21,
+          inject: () => ({ onRewind }),
+        }, MorenRewind))
+
+        // The purge undo button is disabled on DSH 0.2.2 because it resolves
+        // the session through the removed uiWorkspace.selection. Moren's button
+        // above is the working replacement; hide the broken one when present.
+        ctx.effect(() => {
+          const style = document.createElement('style')
+          style.id = 'moren-rewind-replace'
+          style.textContent = '.dshp-rewind-wrap{display:none!important}[data-dsh-purge-rewind-host]{display:none!important}'
+          document.head.appendChild(style)
+          return () => style.remove()
+        }, 'moren: replace purge rewind button')
 
         ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
           name: 'sidebar.panellist',
