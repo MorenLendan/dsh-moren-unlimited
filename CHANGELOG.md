@@ -2,6 +2,9 @@
 
 ## 1.0.2 — 2026-11-07
 
+- 壁纸在聊天/主界面不显示：清理 AppFrame 与 ConversationRoot 的 `--dsw-alias-bg-base` 背景层
+- 壁纸不透明度/模糊：移除重复的 html 背景图，只保留可调层
+- 修复 purge 对话回退按钮无反应：为 DSH 0.2.2 补回 `uiWorkspace.selection` 会话绑定
 - 新增左侧栏「壁纸」页：上传 PNG/JPEG/WebP/GIF（最大 20MB）作为 DSH Web 背景
 - 壁纸保存到 `$DSH_HOME/moren/wallpaper`，设置保存到 `wallpaper.json`，刷新/重启后仍生效
 - 支持不透明度、模糊、压暗、cover/contain；纯 CSS 背景层，不改 DSH 前端
