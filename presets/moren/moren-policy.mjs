@@ -10,27 +10,13 @@
 export const name = 'moren-policy'
 
 export function apply(ctx, config = {}) {
-  const ids = new Set([config.parentId, config.childId].filter(Boolean))
-
-  const presetOf = (agent) => {
-    try {
-      const registry = ctx.get('agentPresets')
-      if (!registry) return undefined
-      const bySession = registry.presetForSession?.(agent.session)
-      if (bySession) return bySession
-      return registry.composedPreset?.(agent.ctx)
-    } catch {
-      return undefined
-    }
-  }
-
+  // This row is mounted ONLY under the Moren preset tree, so every agent whose
+  // creation dispatches into this scope belongs to the mode. No preset-id probe
+  // is needed (and a probe that runs too early would silently miss).
   const release = ctx.on('agent/created', ({ agent }) => {
     try {
-      if (!ids.has(presetOf(agent))) return
-      if (config.approvalNever !== false) {
-        const approval = ctx.get('approval')
-        approval?.setPolicy?.(agent, 'never')
-      }
+      if (config.approvalNever === false) return
+      ctx.get('approval')?.setPolicy?.(agent, 'never')
     } catch {
       // A host without the approval service keeps its own policy.
     }

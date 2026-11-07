@@ -198,6 +198,19 @@ export function apply(ctx, rawConfig) {
     })
   }
 
+  // Belt-and-braces: the preset-local moren-policy row sets approval `never`
+  // inside the preset scope; this host listener catches the same event at the
+  // root for agents whose session already records one of our presets.
+  ctx.on('agent/created', ({ agent }) => {
+    try {
+      if (!config.approvalNever) return
+      const registry = ctx.get('agentPresets')
+      const id = registry?.presetForSession?.(agent.session)
+      if (id !== PARENT_PRESET_ID && id !== CHILD_PRESET_ID) return
+      ctx.get('approval')?.setPolicy?.(agent, 'never')
+    } catch { /* optional services */ }
+  })
+
   ctx.inject(['agentPresets'], () => {
     if (registryMissing) declare()
   })

@@ -202,6 +202,7 @@ window.__ModuleLoader__.load({
         h(Card, { title: '回退状态' },
           h(Line, { name: 'Moren 回退', ok: rollback.healthy, value: rollback.healthy ? '可用' : '不可用', hint: rollback.dir }),
           h(Line, { name: 'dsh-purge 宿主备份', ok: purge.available, value: purge.available ? `${purge.backup_files} 个 .bak` : '无', hint: purge.hint }),
+          h(Line, { name: '其它回退', ok: (rollback.existing ?? []).length > 0, value: (rollback.existing ?? []).length > 0 ? `${rollback.existing.length} 处` : '未发现', hint: (rollback.existing ?? []).map((item) => item.path).join('、') }),
           h(Line, { name: '自动检查', ok: rollback.state?.ok !== false, value: rollback.state?.last_repair_at ?? rollback.state?.last_snapshot_at ?? '尚未运行' }),
           h('p', { className: 'moren-note' }, '用户已有回退功能时会自动检查：本地快照损坏会被隔离并重建健康基线；purge 的 .bak 为空时，用 Moren 快照替代宿主回退。')),
         h(Card, { title: `快照（${rollback.count ?? 0}）` },
