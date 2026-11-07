@@ -167,11 +167,7 @@ window.__ModuleLoader__.load({
     // wallpaper is on; panels keep their layer backgrounds, so contrast stays.
     const WALLPAPER_CSS = `
 html.moren-wallpaper {
-  background-image: var(--moren-wallpaper-image);
-  background-size: var(--moren-wallpaper-size, cover);
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-color: var(--dsw-alias-bg-base, #fff);
 }
 html.moren-wallpaper body {
   background: transparent !important;
