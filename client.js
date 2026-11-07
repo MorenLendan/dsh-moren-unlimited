@@ -3,7 +3,7 @@ window.__ModuleLoader__.load({
   factory(require) {
     const React = require('react')
     const h = React.createElement
-    const { useState, useEffect, useCallback, useMemo, useRef } = React
+    const { useState, useEffect, useCallback, useMemo } = React
 
     const NS = 'settings.dsh-moren-unlimited'
     const zh = {
@@ -144,8 +144,16 @@ window.__ModuleLoader__.load({
         h('circle', { cx: 50, cy: 46, r: 3.1, fill: 'currentColor' }))
     }
 
+    function appBase() {
+      try {
+        if (document.baseURI) return document.baseURI
+        if (window.location?.origin) return `${window.location.origin}/`
+      } catch { /* ignore */ }
+      return 'http://127.0.0.1/'
+    }
+
     async function api(op, payload = {}) {
-      const response = await fetch('/dsh-moren/api', {
+      const response = await fetch(new URL('dsh-moren/api', appBase()), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ op, ...payload }),
@@ -158,6 +166,13 @@ window.__ModuleLoader__.load({
     // Global wallpaper layer. Body's own background is cleared only while the
     // wallpaper is on; panels keep their layer backgrounds, so contrast stays.
     const WALLPAPER_CSS = `
+html.moren-wallpaper {
+  background-image: var(--moren-wallpaper-image);
+  background-size: var(--moren-wallpaper-size, cover);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
 html.moren-wallpaper body {
   background: transparent !important;
   isolation: isolate;
@@ -189,7 +204,8 @@ html.moren-wallpaper #root {
   z-index: 0;
   background: transparent !important;
 }
-html.moren-wallpaper #root > div {
+html.moren-wallpaper #root > div,
+html.moren-wallpaper #root > div > div {
   background-color: transparent !important;
 }
 `
@@ -205,7 +221,7 @@ html.moren-wallpaper #root > div {
           }
           return
         }
-        root.style.setProperty('--moren-wallpaper-image', `url("${settings.url}")`)
+        root.style.setProperty('--moren-wallpaper-image', `url("${new URL(settings.url, appBase()).href}")`)
         root.style.setProperty('--moren-wallpaper-opacity', String(Math.max(0, Math.min(100, Number(settings.opacity ?? 100))) / 100))
         root.style.setProperty('--moren-wallpaper-blur', `${Math.max(0, Math.min(40, Number(settings.blur ?? 0)))}px`)
         root.style.setProperty('--moren-wallpaper-dim', String(Math.max(0, Math.min(90, Number(settings.dim ?? 25))) / 100))
@@ -346,7 +362,6 @@ html.moren-wallpaper #root > div {
       const [dim, setDim] = useState(current.dim ?? 25)
       const [fit, setFit] = useState(current.fit === 'contain' ? 'contain' : 'cover')
       const [busy, setBusy] = useState(false)
-      const fileRef = useRef(null)
 
       useEffect(() => {
         setOpacity(current.opacity ?? 100)
@@ -414,15 +429,19 @@ html.moren-wallpaper #root > div {
             ? h('img', { className: 'moren-wallpaper-preview', src: current.url, alt: '当前壁纸' })
             : h('div', { className: 'moren-wallpaper-empty' }, '还没有自定义壁纸。上传一张图片即可作为 DSH Web 的背景。'),
           h('div', { className: 'moren-actions' },
-            h('button', { className: 'moren-btn primary', disabled: busy, onClick: () => fileRef.current?.click() }, busy ? h('span', { className: 'moren-spin' }) : (current.url ? '更换图片' : '上传图片')),
-            h('button', { className: 'moren-btn', disabled: busy || !current.url, onClick: clear }, '清除壁纸'),
-            h('input', {
-              ref: fileRef,
-              type: 'file',
-              accept: 'image/png,image/jpeg,image/webp,image/gif',
-              style: { display: 'none' },
-              onChange: (event) => { const file = event.target.files?.[0]; event.target.value = ''; upload(file) },
-            })),
+            h('label', {
+              className: 'moren-btn primary',
+              style: { cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.55 : 1 },
+            },
+              busy ? h('span', { className: 'moren-spin' }) : (current.url ? '更换图片' : '上传图片'),
+              h('input', {
+                type: 'file',
+                accept: 'image/png,image/jpeg,image/webp,image/gif',
+                style: { display: 'none' },
+                disabled: busy,
+                onChange: (event) => { const file = event.target.files?.[0]; event.target.value = ''; upload(file) },
+              })),
+            h('button', { className: 'moren-btn', disabled: busy || !current.url, onClick: clear }, '清除壁纸')),
           h('p', { className: 'moren-note' }, '支持 PNG / JPEG / WebP / GIF，最大 20MB；文件保存在 $DSH_HOME/moren/wallpaper，刷新页面后仍然生效。'),
           current.url ? h('p', { className: 'moren-note' }, `当前：${current.name || current.file} · ${Math.round((current.size || 0) / 1024)} KB · ${current.enabled ? '已启用' : '已关闭'}`) : null),
         h(Card, { title: '显示参数' },

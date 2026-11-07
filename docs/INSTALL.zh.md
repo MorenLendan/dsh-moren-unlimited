@@ -56,7 +56,10 @@ dsh --profile web
 # profile 里应出现依赖与 bundle
 cat ~/.dsh/profiles/web/package.json
 
-# 运行验证脚本（宿主需正在运行）
+# 离线全量自检（临时 DSH_HOME，不改真实 profile）
+node scripts/selftest.mjs
+
+# 校验运行中的宿主
 node scripts/verify.mjs
 ```
 
