@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Moren unrestricted LiangShen mode">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f6b4f"/>
+      <stop offset="0.55" stop-color="#4f8f74"/>
+      <stop offset="1" stop-color="#c9a45c"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.62">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="#122019"/>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#glow)"/>
+  <path d="M17 44V21.5c0-2.4 3-3.2 4.3-1.2L32 38l10.7-17.7c1.3-2 4.3-1.2 4.3 1.2V44"
+        fill="none" stroke="url(#g)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="17" cy="44" r="3.1" fill="#8fd0a8"/>
+  <circle cx="47" cy="44" r="3.1" fill="#e4c48a"/>
+  <path d="M12 50h40" stroke="#8fd0a8" stroke-opacity="0.35" stroke-width="1.6" stroke-linecap="round"/>
+</svg>

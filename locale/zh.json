@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "title": "Moren 无限制梁神模式",
+    "description": "把 dsh-purge 的无限制模式/无限制子任务与梁神模式合成一个原生预设；含左侧栏入口、图片视频识别、本地生图、编码器、Token 守卫与可自检修复的回退。"
+  },
+  "panel": {
+    "title": "Moren 无限制梁神模式",
+    "subtitle": "无限制模式 × 无限制子任务 × 梁神模式",
+    "status": "状态",
+    "mode": "模式",
+    "rollback": "回退",
+    "tools": "能力",
+    "compat": "兼容",
+    "docs": "教程"
+  }
+}

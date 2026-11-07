@@ -1,0 +1,78 @@
+{
+  "name": "dsh-moren-unlimited",
+  "version": "1.0.0",
+  "private": false,
+  "description": "Moren 无限制梁神模式：把 dsh-purge 的无限制模式/无限制子任务与梁神模式合成一个原生预设，带左侧栏入口、图片与视频识别、本地生图、编码器、Token 守卫和可自检修复的回退。",
+  "type": "module",
+  "icon": "icon.svg",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./lib/*": "./lib/*",
+    "./presets/*": "./presets/*",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib",
+    "presets",
+    "locale",
+    "scripts",
+    "cordis.patch.yml",
+    "icon.svg",
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
+    "docs",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ]
+    },
+    "engines": {
+      "dsh": ">=0.2.2-rc.1"
+    }
+  },
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "agent-preset",
+    "liangshen",
+    "purge",
+    "unrestricted"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_GITHUB_NAME/dsh-moren-unlimited.git"
+  },
+  "bin": {
+    "dsh-moren-install": "./scripts/install.mjs"
+  },
+  "scripts": {
+    "verify": "node scripts/verify.mjs",
+    "install-plugin": "node scripts/install.mjs"
+  },
+  "engines": {
+    "node": ">=24.9.0"
+  }
+}

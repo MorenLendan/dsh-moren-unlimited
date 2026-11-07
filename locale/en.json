@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "title": "Moren unrestricted LiangShen mode",
+    "description": "Fuses dsh-purge's unrestricted mode and unrestricted subagents with LiangShen mode into one native preset, with a left-sidebar page, image/video inspection, local image generation, a codec, a token guard, and a self-checking rollback."
+  },
+  "panel": {
+    "title": "Moren unrestricted LiangShen mode",
+    "subtitle": "Unrestricted × unrestricted subagents × LiangShen",
+    "status": "Status",
+    "mode": "Mode",
+    "rollback": "Rollback",
+    "tools": "Capabilities",
+    "compat": "Compatibility",
+    "docs": "Docs"
+  }
+}

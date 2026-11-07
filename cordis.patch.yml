@@ -1,0 +1,24 @@
+# dsh-moren-unlimited bundle patch.
+#
+# One host row declares two agent presets to the live agent-preset registry:
+#   moren-unlimited-liangshen         Moren无限制梁神模式
+#   moren-unlimited-liangshen-child   Moren无限制梁神模式 · 无限制子任务
+# and serves the left-sidebar page API. No dsh host file is patched, so it can
+# live beside dsh-purge and @linxin666/dsh-liangshen with both enabled.
+- insert:
+    - id: moren-unlimited
+      name: 'dsh-moren-unlimited'
+      inject: [systemPrompt]
+      config:
+        enabled: true
+        announceToAgent: false
+        # 会话进入本模式时把审批策略设为 never（只作用于本模式的会话）。
+        approvalNever: true
+        # 梁神模式的调度者规则块（约 24KB）。默认关闭以节省 Token；需要完整梁神调度角色时改 true。
+        dispatcher: false
+        # 大工具结果自动折叠阈值（字符）；0 关闭。
+        tokenGuardChars: 24000
+        # 启动时自动检查回退快照，损坏则建立新的健康基线。
+        autoRepairRollback: true
+        # 回退快照最多保留份数。
+        snapshotKeep: 20
