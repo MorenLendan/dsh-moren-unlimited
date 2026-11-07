@@ -31,6 +31,7 @@ $DSH_HOME/moren/snapshots/<timestamp>-<rand>/
     ├── profile/package.json
     ├── profile/cordis.yml
     ├── profile/pnpm-workspace.yaml
+    ├── moren/wallpaper.json
     └── agent-presets/<preset>/agent.cordis.yml | preset.yml
 ```
 

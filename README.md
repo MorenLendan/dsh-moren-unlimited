@@ -38,6 +38,12 @@ dsh --profile web
 
 ### 2.2 安装本插件（三选一）
 
+**0. 一条命令从 GitHub（公开后）**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MorenLendan/dsh-moren-unlimited/main/scripts/install-remote.sh | bash
+```
+
 **A. 本地目录（开发/自用，推荐）**
 
 ```bash
@@ -379,7 +385,7 @@ git push -u origin main
 # 网页 Settings → 确认 Public
 ```
 
-详细说明与失败排查见 [docs/GITHUB.zh.md](docs/GITHUB.zh.md)。
+详细说明与失败排查见 [docs/GITHUB.zh.md](docs/GITHUB.zh.md)。插件分发机制（为什么 `dsh plugin add` 还要 bundle 行）见 [docs/DISTRIBUTION.zh.md](docs/DISTRIBUTION.zh.md)。
 
 ---
 
