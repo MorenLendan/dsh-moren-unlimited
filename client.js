@@ -204,9 +204,15 @@ html.moren-wallpaper #root {
   z-index: 0;
   background: transparent !important;
 }
-html.moren-wallpaper #root > div,
-html.moren-wallpaper #root > div > div {
+html.moren-wallpaper #root > div {
   background-color: transparent !important;
+}
+html.moren-wallpaper [class*="_frame"],
+html.moren-wallpaper [class*="_centerCol"],
+html.moren-wallpaper [class*="_mainPanel"],
+html.moren-wallpaper [class*="_root"][data-phase],
+html.moren-wallpaper [data-conversation-content] {
+  background: transparent !important;
 }
 `
 
