@@ -41,7 +41,7 @@ dsh --profile web
 **0. 官方 Release tarball（推荐，和 purge 一样的命令）**
 
 ```bash
-dsh plugin --profile web add "https://github.com/MorenLendan/dsh-moren-unlimited/releases/download/v1.0.2/dsh-moren-unlimited-1.0.2.tgz"
+dsh plugin --profile web add "https://github.com/MorenLendan/dsh-moren-unlimited/releases/download/v1.0.2/dsh-moren-unlimited-1.0.2.tgz?download=1"
 ```
 
 DSH 0.2.2 会在 `pnpm add` 后自动把 `dsh-moren-unlimited` 写进 `dsh.profile.bundles`；已实测。
