@@ -12,7 +12,7 @@
 - 新建会话时多一个模式：**Moren无限制梁神模式**
 - 子代理默认进入：**Moren无限制梁神模式 · 无限制子任务**（最多 10 层）
 - purge 与 `@linxin666/dsh-liangshen` 可以**同时保持开启**，不抢行、不改宿主源码
-- 图片/视频识别、关键帧抽取、本地生图、增强编解码、Token 守卫、对话回退、REA 逆向、联网情报
+- 图片/视频识别、关键帧抽取、本地生图、增强编解码、Token 守卫、本机 DSH 回退修复、REA 逆向、联网情报
 
 > 左侧栏入口：侧栏底部面板列表里的 **Moren**（与 Purge 并列），点开是整页面板：状态 / 模式 / 壁纸 / 回退 / 能力 / 兼容 / 教程。
 
@@ -25,7 +25,7 @@
 | dsh-purge · 无限制模式 | 无限制人设、shell/fs/技能/计划/压缩、`approval: never` 会话策略 | Agent 平面 + 每会话策略 |
 | dsh-purge · 无限制子任务 | `subagent` 默认子预设、深度 10、模型选择、continuable 后台 | 父/子预设 |
 | 梁神模式 | `minimal-prompt`、PTC `run_code` 工具面、工具分页 `tool_activate`、working-context、fact-ledger、子任务路由守卫、dispatch-guard | 预设行（vendored，Apache-2.0） |
-| 本插件 | `moren_*` 工具、Token 守卫、对话回退、REA MCP、联网情报、DSH 壁纸、左侧栏页面 | 插件 + 预设作用域 |
+| 本插件 | `moren_*` 工具、Token 守卫、DSH 原生回退 session 补丁、REA MCP、联网情报、DSH 壁纸、左侧栏页面 | 插件 + 预设作用域 |
 
 **没有合并/没有替代**：purge 的 83 条宿主补丁仍然由 purge 自己的面板「应用」；本插件不写 dsh 源码、不写 purge 文件，所以两边同时开启不会互相覆盖。你没有应用 purge 宿主补丁时，本模式仍然可用，只是审批/沙箱闸门仍按当前 profile 执行。
 
@@ -48,7 +48,7 @@ dsh --profile web
 **0. 官方 Release tarball（推荐，和 purge 一样的命令）**
 
 ```bash
-dsh plugin --profile web add "https://github.com/MorenLendan/dsh-moren-unlimited/releases/download/v2.0.0/dsh-moren-unlimited-2.0.0.tgz?download=1"
+dsh plugin --profile web add "https://github.com/MorenLendan/dsh-moren-unlimited/releases/download/v2.0.1/dsh-moren-unlimited-2.0.1.tgz?download=1"
 ```
 
 DSH 0.2.2 会在 `pnpm add` 后自动把 `dsh-moren-unlimited` 写进 `dsh.profile.bundles`；已实测。
@@ -116,7 +116,7 @@ node scripts/install.mjs --remove --profile web
 | 状态 | 模式注册、REA/ffmpeg 状态、purge/梁神/DSH 版本、Token 守卫命中率 |
 | 模式 | 父/子预设 id、子代理深度、PTC/native、梁神调度块开关、如何切换 |
 | 壁纸 | 上传/更换/清除自定义图片，调不透明度、模糊、压暗、cover/contain |
-| 回退 | 对话回退：上一步 / 上一轮（含子代理）/ 全部回退 |
+| 回退 | 修复本机 purge 回退按钮的 session 绑定；不渲染 Moren 自己的回退 UI |
 | 能力 | `moren_*` 工具清单与用途 |
 | 兼容 | purge/梁神/REA 共存说明 |
 | 教程 | 安装、使用、REA、情报、回退命令 |
@@ -190,15 +190,20 @@ moren_token_audit({ action: "compact", path: "/data/huge.log", outPath: "/data/h
 
 ## 4. 对话回退 / REA 逆向 / 联网情报
 
-### 4.1 对话回退（DSH `/rewind`）
+### 4.1 本机 DSH 回退（原生 purge 按钮）
 
-输入框右侧「回退 ▾」或 Moren → 回退：
+Moren 不再渲染自己的回退 UI，也不隐藏 purge 的按钮。插件启动时修补本机 `dsh-purge-community/client.js`：
 
-- **回退上一步**：`/rewind once`
-- **回退上一轮（含子代理）**：`/rewind round`
-- **全部回退**：反复执行 `round`，最多 30 轮，执行前有确认框
+- 把 `uiWorkspace.selection`（DSH 0.2.2 已移除）替换为 `uiSession.current.getSnapshot().key`
+- 给 purge 的 rewind UI 注入 `uiSession`
+- 原文件保留为 `client.js.moren-orig`
 
-回退会切到保留之前上下文的新会话，并把那句放回输入框；不是只改草稿。
+修补后输入框右侧就是 purge 原生「回退」按钮：
+
+- **回退一次**：`/rewind once`
+- **回退上一轮**：`/rewind round`（含子代理）
+
+回退会切到保留之前上下文的新会话，并把那句放回输入框。插件不参与回退逻辑。
 
 ### 4.2 REA 逆向
 
@@ -357,7 +362,7 @@ A: 装 `ffmpeg`；`moren_media_inspect` 会自动抽帧到 `$DSH_HOME/moren/fram
 A: 本地生成是程序化视觉（渐变/圆盘/线条/颗粒），不是扩散模型；它保证可复现、零依赖、零联网。要语义生图请扩展 `moren_image_generate` 接你的 API。
 
 **Q: 回退后模式消失？**
-A: 对话回退只改会话，不改插件行；模式消失通常是 profile 被手工改过，重启并检查 bundles。
+A: 原生回退只改会话，不改插件行；模式消失通常是 profile 被手工改过，重启并检查 bundles。
 
 **Q: REA 工具没出现？**
 A: 先 `rea mcp doctor`；进入 Moren 会话后执行 `tool_activate({ namespace: "rea" })`；`rea` 未安装时运行 `npm i -g rea-agents@6.8.0`。

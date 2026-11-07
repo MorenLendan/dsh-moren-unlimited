@@ -18,6 +18,7 @@ import {
 } from './lib/home.js'
 import { buildPresetDefinitions } from './presets/moren/definition.mjs'
 import { compatReport } from './lib/compat.js'
+import { ensurePurgeRewindPatch } from './lib/purge-rewind-patch.js'
 import {
   clearWallpaper,
   saveWallpaperSettings,
@@ -99,6 +100,7 @@ async function readJsonBody(request, limit = 1024 * 1024) {
 
 export function apply(ctx, rawConfig) {
   const config = resolveConfig(rawConfig)
+  const purgePatch = ensurePurgeRewindPatch(ctx.logger ?? console)
   const presetState = { parentRegistered: false, childRegistered: false, error: null, at: null }
   let releaseParent
   let releaseChild
@@ -111,6 +113,7 @@ export function apply(ctx, rawConfig) {
     const stats = readJson(`${morenHome()}/token-stats.json`, { calls: 0, guarded: 0, deduped: 0, savedChars: 0, savedTokens: 0 })
     return {
       ...compatReport({ presetState, config }),
+      purgeRewindPatch: purgePatch,
       wallpaper: wallpaperStatus(),
       tokenGuard: {
         thresholdChars: config.tokenGuardChars,

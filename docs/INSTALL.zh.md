@@ -33,7 +33,7 @@ cd dsh-moren-unlimited
 ### 2.0 官方 Release tarball（推荐）
 
 ```bash
-dsh plugin --profile web add "https://github.com/MorenLendan/dsh-moren-unlimited/releases/download/v2.0.0/dsh-moren-unlimited-2.0.0.tgz?download=1"
+dsh plugin --profile web add "https://github.com/MorenLendan/dsh-moren-unlimited/releases/download/v2.0.1/dsh-moren-unlimited-2.0.1.tgz?download=1"
 ```
 
 DSH 0.2.2 会自动把包名写进 `dsh.profile.bundles`。

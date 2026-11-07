@@ -4,7 +4,7 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const h = React.createElement
     const ReactDOM = (() => { try { return require('react-dom') } catch { return null } })()
-    const { useState, useEffect, useCallback, useMemo, useRef } = React
+    const { useState, useEffect, useCallback, useMemo } = React
 
     const NS = 'settings.dsh-moren-unlimited'
     const zh = {
@@ -14,7 +14,6 @@ window.__ModuleLoader__.load({
       'tab.status': '状态',
       'tab.mode': '模式',
       'tab.wallpaper': '壁纸',
-      'tab.rollback': '回退',
       'tab.tools': '能力',
       'tab.compat': '兼容',
       'tab.docs': '教程',
@@ -39,7 +38,6 @@ window.__ModuleLoader__.load({
       'tab.status': 'Status',
       'tab.mode': 'Mode',
       'tab.wallpaper': 'Wallpaper',
-      'tab.rollback': 'Rollback',
       'tab.tools': 'Capabilities',
       'tab.compat': 'Compatibility',
       'tab.docs': 'Docs',
@@ -113,16 +111,6 @@ window.__ModuleLoader__.load({
 .moren-hero .sub { color: var(--dsw-alias-label-secondary, #777); font-size: .85em; margin-left: auto; }
 .moren-hero .ops { display: flex; gap: 8px; flex-wrap: wrap; width: 100%; }
 @media (max-width: 700px) { .moren-line .hint { margin-left: 0; text-align: left; } .moren-page { padding: 16px 14px 40px; } }
-.moren-rewind-btn { appearance:none; display:inline-flex; align-items:center; gap:4px; height:28px; padding:0 8px; border:0; border-radius:8px; background:transparent; color:var(--dsw-alias-label-secondary, currentColor); font:12px/1 var(--ds-font-sans, system-ui, sans-serif); cursor:pointer; }
-.moren-rewind-btn:hover:not(:disabled) { background:var(--dsw-alias-interactive-bg-hover, rgba(127,127,127,.12)); color:var(--dsw-alias-label-primary, currentColor); }
-.moren-rewind-btn:disabled { opacity:.4; cursor:default; }
-.moren-rewind-wrap { position:relative; display:inline-flex; align-items:center; gap:6px; }
-.moren-rewind-menu { position:fixed; z-index:2147483000; box-sizing:border-box; min-width:248px; padding:4px; border-radius:12px; background:var(--dsw-specific-menu, #fff); color:var(--dsw-alias-label-primary, #1a1a1a); box-shadow:0 12px 32px rgba(0,0,0,.22); transform:translateY(-100%); }
-.moren-rewind-item { display:flex; flex-direction:column; gap:2px; width:100%; padding:8px 10px; border:0; border-radius:8px; background:transparent; color:inherit; text-align:left; cursor:pointer; font:12px/1.35 var(--ds-font-sans, system-ui, sans-serif); }
-.moren-rewind-item:hover { background:var(--dsw-alias-interactive-bg-hover, rgba(127,127,127,.12)); }
-.moren-rewind-item b { font-size:12.5px; font-weight:600; }
-.moren-rewind-item span { color:var(--dsw-alias-label-secondary, #777); font-size:11px; }
-.moren-rewind-note { max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--dsw-alias-label-secondary, #777); font-size:11px; }
 .moren-wallpaper-preview { width: 100%; max-height: 260px; object-fit: cover; border-radius: 10px; border: 1px solid var(--dsw-alias-border-l1, rgba(127,127,127,.25)); display: block; }
 .moren-wallpaper-empty { padding: 28px 12px; text-align: center; color: var(--dsw-alias-label-secondary, #777); border: 1px dashed var(--dsw-alias-border-l1, rgba(127,127,127,.3)); border-radius: 10px; }
 .moren-slider { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .9em; }
@@ -283,16 +271,6 @@ html.moren-wallpaper [data-conversation-content] {
           h('pre', { className: 'moren-code' }, `# 让宿主重新注册本模式（改了配置后）\ncurl -s -X POST http://127.0.0.1:3080/dsh-moren/api -H 'content-type: application/json' -d '{"op":"redeclare"}'`)))
     }
 
-    function Rollback({ onRewind, rewindBusy }) {
-      return h(Card, { title: '对话回退' },
-        h('p', null, '调用 DSH 的 /rewind：切到保留之前上下文的新会话，并把那句放回输入框。'),
-        h('div', { className: 'moren-actions' },
-          h('button', { className: 'moren-btn primary', disabled: rewindBusy, onClick: () => onRewind('once') }, rewindBusy ? h('span', { className: 'moren-spin' }) : '回退上一步'),
-          h('button', { className: 'moren-btn', disabled: rewindBusy, onClick: () => onRewind('round') }, '回退上一轮（含子代理）'),
-          h('button', { className: 'moren-btn danger', disabled: rewindBusy, onClick: () => onRewind('all') }, '全部回退')),
-        h('p', { className: 'moren-note' }, '输入框右侧「回退 ▾」也提供同样三个选项。'))
-    }
-
     const TOOL_ROWS = [
       ['moren_media_inspect', '图片/视频识别：尺寸、时长、主色、averageHash、关键帧路径（ffmpeg）'],
       ['moren_image_generate', '本地确定性 PNG 生图：同一 prompt/seed 同一张图'],
@@ -329,8 +307,8 @@ html.moren-wallpaper [data-conversation-content] {
         h(Card, { title: '使用' },
           h('p', null, '新建会话 → 选「Moren无限制梁神模式」→ 直接派活。复杂任务会自动用 subagent 进入子预设；子代理最多 10 层。'),
           h('pre', { className: 'moren-code' }, `# 逆向先激活 REA 命名空间\ntool_activate({ namespace: "rea" })\n\n# 识别视频并抽帧\nmoren_media_inspect({ path: "/data/demo.mp4", frames: 6 })\n\n# 生成图片\nmoren_image_generate({ prompt: "墨绿极光，铜色点缀", width: 1024, height: 768 })`)),
-        h(Card, { title: '回退（对话）' },
-          h('pre', { className: 'moren-code' }, `# 输入框右侧 回退 ▾\n# 或 Moren → 回退\n# 或直接命令\n/rewind once\n/rewind round`)))
+        h(Card, { title: '回退（DSH 原生）' },
+          h('pre', { className: 'moren-code' }, `# 输入框右侧 purge 的回退按钮\n# 菜单：回退一次 / 回退上一轮\n# 或直接命令\n/rewind once\n/rewind round`)))
     }
 
     /**
@@ -382,65 +360,6 @@ html.moren-wallpaper [data-conversation-content] {
           return () => {}
         }
       }
-    }
-
-    function MorenRewind({ onRewind }) {
-      const [busy, setBusy] = useState(false)
-      const [open, setOpen] = useState(false)
-      const [notice, setNotice] = useState('')
-      const [pos, setPos] = useState(null)
-      const btnRef = useRef(null)
-      const run = async (mode) => {
-        if (busy) return
-        setOpen(false)
-        setBusy(true)
-        setNotice('')
-        try {
-          const result = await onRewind(mode)
-          if (!result?.cancelled) setNotice(mode === 'all' ? `已回退 ${result?.rounds ?? 0} 轮` : '已回退')
-        } catch (cause) {
-          setNotice(String(cause?.message ?? cause))
-        } finally {
-          setBusy(false)
-        }
-      }
-      const toggle = (event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        if (!open) {
-          const rect = btnRef.current?.getBoundingClientRect?.()
-          if (rect) setPos({ left: Math.max(8, rect.right - 260), top: Math.max(8, rect.top - 8) })
-        }
-        setOpen((value) => !value)
-      }
-      const item = (mode, label, hint) => h('button', {
-        type: 'button',
-        className: 'moren-rewind-item',
-        onMouseDown: (event) => event.preventDefault(),
-        onClick: (event) => { event.preventDefault(); event.stopPropagation(); run(mode) },
-      }, h('b', null, label), h('span', null, hint))
-      const menu = open ? h('div', {
-        className: 'moren-rewind-menu',
-        role: 'menu',
-        style: { left: `${pos?.left ?? 8}px`, top: `${pos?.top ?? 8}px` },
-      },
-        item('once', '回退上一步', '撤回最后一步，保留之前的上下文'),
-        item('round', '回退上一轮', '整轮撤回，包含本轮子代理'),
-        item('all', '全部回退', '反复回退上一轮，直到没有可撤内容')) : null
-      return h('div', { className: 'moren-rewind-wrap' },
-        h('button', {
-          ref: btnRef,
-          type: 'button',
-          className: 'moren-rewind-btn',
-          title: notice || '回退：上一步 / 上一轮 / 全部',
-          disabled: busy,
-          'aria-haspopup': 'menu',
-          'aria-expanded': open ? 'true' : 'false',
-          onMouseDown: (event) => event.preventDefault(),
-          onClick: toggle,
-        }, busy ? '回退中…' : '回退 ▾'),
-        menu && ReactDOM?.createPortal ? ReactDOM.createPortal(menu, document.body) : menu,
-        notice ? h('span', { className: 'moren-rewind-note' }, notice) : null)
     }
 
     function Wallpaper({ data, notify, refresh }) {
@@ -552,13 +471,12 @@ html.moren-wallpaper [data-conversation-content] {
           h('p', { className: 'moren-note' }, '如果你在使用桌面客户端而不是 Web，这个入口只在 Web GUI 生效。')))
     }
 
-    function Page({ onRewind } = {}) {
+    function Page() {
       const [tab, setTab] = useState('status')
       const [data, setData] = useState(null)
       const [error, setError] = useState(null)
       const [busy, setBusy] = useState(false)
       const [notice, setNotice] = useState(null)
-      const [rewindBusy, setRewindBusy] = useState(false)
 
       const load = useCallback(async () => {
         try {
@@ -587,24 +505,8 @@ html.moren-wallpaper [data-conversation-content] {
         }
       }, [load])
 
-      const doRewind = useCallback(async (mode = 'once') => {
-        if (!onRewind) return
-        setRewindBusy(true)
-        setNotice(null)
-        try {
-          const result = await onRewind(mode)
-          if (result?.cancelled) return
-          setNotice({ ok: true, text: mode === 'all' ? `全部回退完成：${result?.rounds ?? 0} 轮` : mode === 'round' ? '已回退上一轮（含子代理）' : '已回退上一步' })
-          await load()
-        } catch (cause) {
-          setNotice({ ok: false, text: String(cause?.message ?? cause) })
-        } finally {
-          setRewindBusy(false)
-        }
-      }, [onRewind, load])
-
       const tabs = [
-        ['status', '状态'], ['mode', '模式'], ['wallpaper', '壁纸'], ['rollback', '回退'], ['tools', '能力'], ['compat', '兼容'], ['docs', '教程'],
+        ['status', '状态'], ['mode', '模式'], ['wallpaper', '壁纸'], ['tools', '能力'], ['compat', '兼容'], ['docs', '教程'],
       ]
       const healthy = data?.summary?.allGreen
       return h('div', { className: 'moren-page' },
@@ -613,7 +515,7 @@ html.moren-wallpaper [data-conversation-content] {
           h('span', { className: 'moren-glyph' }, GLYPH),
           h('div', { className: 'moren-title' },
             h('h1', null, 'Moren 无限制梁神模式'),
-            h('p', null, '无限制模式 × 无限制子任务 × 梁神模式 · 原生预设 + 媒体/编码/回退工具'))),
+            h('p', null, '无限制模式 × 无限制子任务 × 梁神模式 · 原生预设 + 媒体/编码/REA/情报'))),
         h('div', { className: 'moren-strip' },
           h('span', null, h('b', null, '模式'), data?.presets?.parent?.registered ? ' 已注册' : ' 未注册'),
           h('span', null, h('b', null, 'REA'), data?.rea?.installed ? ' 已安装' : ' 未安装'),
@@ -638,7 +540,6 @@ html.moren-wallpaper [data-conversation-content] {
         data && tab === 'status' ? h(Status, { data }) : null,
         data && tab === 'mode' ? h(Mode, { data }) : null,
         data && tab === 'wallpaper' ? h(Wallpaper, { data, notify: setNotice, refresh: load }) : null,
-        data && tab === 'rollback' ? h(Rollback, { onRewind: doRewind, rewindBusy }) : null,
         data && tab === 'tools' ? h(Tools, { data }) : null,
         data && tab === 'compat' ? h(Compat, { data }) : null,
         data && tab === 'docs' ? h(Docs, { data }) : null,
@@ -666,75 +567,6 @@ html.moren-wallpaper [data-conversation-content] {
         }, 'moren: wallpaper layer')
         const t = ctx.locale.bind(NS)
 
-        const currentSessionId = () => {
-          try {
-            const id = ctx.get('uiSession')?.current?.getSnapshot?.()?.key
-            if (id) return id
-          } catch { /* ignore */ }
-          try {
-            const snapshot = ctx.get('sessions')?.list?.getSnapshot?.()
-            const rows = Object.values(snapshot?.byId ?? {})
-            return rows.find((row) => (row?.retainedBy?.mainView ?? 0) > 0)?.id ?? ''
-          } catch { return '' }
-        }
-        const postRewind = async (id, mode) => {
-          let data
-          try {
-            const response = await fetch(new URL('dsh-purge/rewind', appBase()), {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ sessionId: id, mode }),
-            })
-            data = await response.json().catch(() => ({}))
-            if (!response.ok || !data?.ok || data.cleared === false) {
-              throw new Error(data?.error || `回退失败 HTTP ${response.status}`)
-            }
-          } catch (cause) {
-            if (!ctx.remote?.commands?.execute) throw cause
-            const result = await ctx.remote.commands.execute(id, `/rewind ${mode}`, [])
-            if (result && (result.ok === false || result.kind === 'error')) {
-              throw new Error(result.text || result.error || '回退失败')
-            }
-            return { ok: true, sessionId: id, text: result?.text || '', via: 'command' }
-          }
-          const target = data.sessionId || id
-          try {
-            const conversation = ctx.get('conversation')
-            const sessions = ctx.get('sessions')
-            const scope = sessions?.scope?.(target)
-            const input = conversation?.input?.shell?.(target) || conversation?.input?.for?.(scope)
-            if (data?.text) input?.setDraft?.(data.text)
-          } catch { /* draft is best effort */ }
-          try { ctx.get('uiWorkspace')?.openSession?.(target) } catch { /* ignore */ }
-          return data
-        }
-
-        const onRewind = async (mode = 'once') => {
-          const action = mode === 'round' ? 'round' : mode === 'all' ? 'all' : 'once'
-          let id = currentSessionId()
-          if (!id) throw new Error('没有当前会话')
-          if (action !== 'all') return postRewind(id, action)
-          if (typeof window !== 'undefined' && !window.confirm('全部回退会反复撤销上一轮，直到没有可回退内容。继续？')) {
-            return { cancelled: true, rounds: 0 }
-          }
-          let rounds = 0
-          let target = id
-          while (rounds < 30) {
-            try {
-              const data = await postRewind(target, 'round')
-              rounds += 1
-              target = data?.sessionId || currentSessionId() || target
-              await new Promise((resolve) => setTimeout(resolve, 250))
-              const current = currentSessionId()
-              if (current) target = current
-            } catch (cause) {
-              if (rounds === 0) throw cause
-              break
-            }
-          }
-          return { all: true, rounds }
-        }
-
         // Install as early as possible (before the conversation composer first
         // renders), then re-check once the optional services are injected.
         const immediate = (() => {
@@ -752,24 +584,6 @@ html.moren-wallpaper [data-conversation-content] {
           host.effect(() => installPurgeRewindCompat(host), 'moren: purge rewind session shim')
         })
 
-        ctx.slots.inject('conversation.input.right', () => ctx.slots.register({
-          name: 'conversation.input.right',
-          id: 'moren-rewind',
-          order: 21,
-          inject: () => ({ onRewind }),
-        }, MorenRewind))
-
-        // The purge undo button is disabled on DSH 0.2.2 because it resolves
-        // the session through the removed uiWorkspace.selection. Moren's button
-        // above is the working replacement; hide the broken one when present.
-        ctx.effect(() => {
-          const style = document.createElement('style')
-          style.id = 'moren-rewind-replace'
-          style.textContent = '.dshp-rewind-wrap{display:none!important}[data-dsh-purge-rewind-host]{display:none!important}'
-          document.head.appendChild(style)
-          return () => style.remove()
-        }, 'moren: replace purge rewind button')
-
         ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
           name: 'sidebar.panellist',
           id: 'moren-unlimited',
@@ -781,7 +595,7 @@ html.moren-wallpaper [data-conversation-content] {
         ctx.slots.inject('main', () => ctx.slots.register({
           name: 'main',
           key: 'moren-unlimited',
-          inject: () => ({ t, onRewind }),
+          inject: () => ({ t }),
         }, Page))
       },
     }

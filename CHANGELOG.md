@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1 — 2026-11-07
+
+- 删除 Moren 自带回退 UI、菜单、slot 注册和隐藏 purge 按钮的 CSS
+- 启动时自动修补本机 `dsh-purge-community/client.js`：用 `uiSession.current` 解析会话，并注入 `uiSession`
+- 原文件备份 `client.js.moren-orig`；重启后自动重新打补丁
+
 ## 2.0.0 — 2026-11-07
 
 - 移除 Moren 文件快照回退（`moren_snapshot`、快照 API、页面快照表、自动修复全部删除）
