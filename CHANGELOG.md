@@ -3,6 +3,7 @@
 ## 1.0.1 — 2026-11-07
 
 - 回退根因修复：`profile/...` 快照路径现在映射到**实际 profile 目录**；1.0.0 会写到 `$DSH_HOME/profile/`，真实 profile 完全没变，看起来“恢复成功”但什么都没回退
+- 非 web profile 修复：`profileDir()` 从 `--profile <name>` argv 解析，不再一律落到 `profiles/web`
 - 回退修复：恢复旧快照时自动保留 Moren 自身（link 依赖 + bundle 行 + node_modules 链接），不再把回退工具删掉
 - 回退修复：增加 profile / DSH_HOME 归属校验，拒绝跨 profile 恢复；恢复后缓存立即失效
 - 梁神完整性：补回漏掉的 `str-replace-editor` 行
