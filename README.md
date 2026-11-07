@@ -73,8 +73,8 @@ pnpm add link:/absolute/path/to/dsh-moren-unlimited
 cd dsh-moren-unlimited && git pull
 # 重启 dsh web
 
-# 卸载（会移除 bundle 行，不会删除 $DSH_HOME/moren 下的快照）
-dsh plugin --profile web remove dsh-moren-unlimited
+# 卸载（移除依赖 + bundle 行；不会删除 $DSH_HOME/moren 下的快照）
+node scripts/install.mjs --remove --profile web
 ```
 
 ---
