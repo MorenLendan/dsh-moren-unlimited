@@ -7,7 +7,7 @@
 - purge 与 `@linxin666/dsh-liangshen` 可以**同时保持开启**，不抢行、不改宿主源码
 - 图片/视频识别、关键帧抽取、本地生图、编解码、Token 守卫、可自检修复的回退
 
-> 左侧栏入口：侧栏底部面板列表里的 **Moren**（与 Purge 并列），点开是整页面板：状态 / 模式 / 回退 / 能力 / 兼容 / 教程。
+> 左侧栏入口：侧栏底部面板列表里的 **Moren**（与 Purge 并列），点开是整页面板：状态 / 模式 / 壁纸 / 回退 / 能力 / 兼容 / 教程。
 
 ---
 
@@ -18,7 +18,7 @@
 | dsh-purge · 无限制模式 | 无限制人设、shell/fs/技能/计划/压缩、`approval: never` 会话策略 | Agent 平面 + 每会话策略 |
 | dsh-purge · 无限制子任务 | `subagent` 默认子预设、深度 10、模型选择、continuable 后台 | 父/子预设 |
 | 梁神模式 | `minimal-prompt`、PTC `run_code` 工具面、工具分页 `tool_activate`、working-context、fact-ledger、子任务路由守卫、dispatch-guard | 预设行（vendored，Apache-2.0） |
-| 本插件 | `moren_*` 工具、Token 守卫、回退快照、左侧栏页面、兼容自检 | 插件 + 预设作用域 |
+| 本插件 | `moren_*` 工具、Token 守卫、回退快照、DSH 壁纸、左侧栏页面、兼容自检 | 插件 + 预设作用域 |
 
 **没有合并/没有替代**：purge 的 83 条宿主补丁仍然由 purge 自己的面板「应用」；本插件不写 dsh 源码、不写 purge 文件，所以两边同时开启不会互相覆盖。你没有应用 purge 宿主补丁时，本模式仍然可用，只是审批/沙箱闸门仍按当前 profile 执行。
 
@@ -94,6 +94,7 @@ node scripts/install.mjs --remove --profile web
 | --- | --- |
 | 状态 | 模式注册、回退健康度、purge/梁神/DSH 版本、Token 守卫命中率 |
 | 模式 | 父/子预设 id、子代理深度、PTC/native、梁神调度块开关、如何切换 |
+| 壁纸 | 上传/更换/清除自定义图片，调不透明度、模糊、压暗、cover/contain |
 | 回退 | 快照列表、创建/校验/恢复/修复/清理；purge `.bak` 状态 |
 | 能力 | `moren_*` 工具清单与用途 |
 | 兼容 | 两插件共存说明、回退不可用时的替代路径 |
@@ -101,7 +102,17 @@ node scripts/install.mjs --remove --profile web
 
 按钮直接调用 `/dsh-moren/api`（同源校验），不需要额外端口。
 
-### 3.3 工具（只在 Moren 模式可见）
+### 3.3 壁纸（DSH Web 背景）
+
+左侧栏 **Moren → 壁纸**：
+
+1. 点「上传图片」，选 PNG / JPEG / WebP / GIF（最大 20MB）
+2. 用滑块调「不透明度 / 模糊 / 压暗」，选「铺满 / 完整显示」
+3. 点「应用设置」；「关闭壁纸」保留图片但停止显示；「清除壁纸」删除文件
+
+壁纸存在 `$DSH_HOME/moren/wallpaper/`，设置存在 `$DSH_HOME/moren/wallpaper.json`，刷新页面、重启 DSH 都还在。它是纯 CSS 背景层，不改 DSH 前端代码；面板和文字仍使用主题背景，压暗可提高可读性。
+
+### 3.4 工具（只在 Moren 模式可见）
 
 #### `moren_media_inspect` — 图片/视频识别
 

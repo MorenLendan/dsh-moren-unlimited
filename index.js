@@ -7,6 +7,7 @@
  * dsh host sources, which is what lets dsh-purge and @linxin666/dsh-liangshen
  * stay enabled at the same time.
  */
+import fs from 'node:fs'
 import {
   CHILD_PRESET_ID,
   PARENT_PRESET_ID,
@@ -18,6 +19,13 @@ import {
 } from './lib/home.js'
 import { buildPresetDefinitions } from './presets/moren/definition.mjs'
 import { compatReport } from './lib/compat.js'
+import {
+  clearWallpaper,
+  saveWallpaperSettings,
+  uploadWallpaper,
+  wallpaperFilePath,
+  wallpaperStatus,
+} from './lib/wallpaper.js'
 import {
   createSnapshot,
   pruneSnapshots,
@@ -116,6 +124,7 @@ export function apply(ctx, rawConfig) {
     const stats = readJson(`${morenHome()}/token-stats.json`, { calls: 0, guarded: 0, deduped: 0, savedChars: 0, savedTokens: 0 })
     return {
       ...compatReport({ presetState, config }),
+      wallpaper: wallpaperStatus(),
       tokenGuard: {
         thresholdChars: config.tokenGuardChars,
         ...stats,
@@ -238,7 +247,7 @@ export function apply(ctx, rawConfig) {
     }
     try {
       const url = new URL(request.url ?? '', 'http://127.0.0.1')
-      const body = request.method === 'POST' ? await readJsonBody(request) : {}
+      const body = request.method === 'POST' ? await readJsonBody(request, 32 * 1024 * 1024) : {}
       const op = String(body.op ?? url.searchParams.get('op') ?? 'status')
       let payload
       switch (op) {
@@ -248,6 +257,10 @@ export function apply(ctx, rawConfig) {
         case 'restore': payload = restoreSnapshot(String(body.id ?? '')); break
         case 'repair': payload = repairRollback(); break
         case 'prune': payload = pruneSnapshots(Number(body.keep ?? config.snapshotKeep)); break
+        case 'wallpaper': payload = wallpaperStatus(); break
+        case 'wallpaper-upload': payload = uploadWallpaper(body); break
+        case 'wallpaper-settings': payload = saveWallpaperSettings(body); break
+        case 'wallpaper-clear': payload = clearWallpaper(); break
         case 'stats': payload = state().tokenGuard; break
         case 'client': {
           let graph
@@ -294,6 +307,33 @@ export function apply(ctx, rawConfig) {
 
   ctx.inject(['webServer'], (host) => {
     host.effect(() => host.webServer.register({ kind: 'prefix', path: '/dsh-moren/api', handler: api }))
+    host.effect(() => host.webServer.register({ kind: 'prefix', path: '/dsh-moren/wallpaper', handler: async (request, response) => {
+      if (!allowSameOrigin(request, response)) return
+      if (request.method !== 'GET' && request.method !== 'HEAD') {
+        response.writeHead(405, { allow: 'GET, HEAD' })
+        response.end()
+        return
+      }
+      const url = new URL(request.url ?? '', 'http://127.0.0.1')
+      const file = decodeURIComponent(url.pathname.slice('/dsh-moren/wallpaper/'.length))
+      const found = wallpaperFilePath(file)
+      if (!found) {
+        response.writeHead(404, { 'cache-control': 'no-store' })
+        response.end()
+        return
+      }
+      response.writeHead(200, {
+        'content-type': found.mime,
+        'content-length': fs.statSync(found.abs).size,
+        'cache-control': 'public, max-age=31536000, immutable',
+        'x-content-type-options': 'nosniff',
+      })
+      if (request.method === 'HEAD') {
+        response.end()
+        return
+      }
+      fs.createReadStream(found.abs).pipe(response)
+    } }))
   })
 
   // Rollback auto-check: if the local rollback exists but is unusable, quarantine

@@ -3,7 +3,7 @@ window.__ModuleLoader__.load({
   factory(require) {
     const React = require('react')
     const h = React.createElement
-    const { useState, useEffect, useCallback, useMemo } = React
+    const { useState, useEffect, useCallback, useMemo, useRef } = React
 
     const NS = 'settings.dsh-moren-unlimited'
     const zh = {
@@ -12,6 +12,7 @@ window.__ModuleLoader__.load({
       'page.subtitle': '无限制模式 × 无限制子任务 × 梁神模式',
       'tab.status': '状态',
       'tab.mode': '模式',
+      'tab.wallpaper': '壁纸',
       'tab.rollback': '回退',
       'tab.tools': '能力',
       'tab.compat': '兼容',
@@ -42,6 +43,7 @@ window.__ModuleLoader__.load({
       'page.subtitle': 'Unrestricted × unrestricted subagents × LiangShen',
       'tab.status': 'Status',
       'tab.mode': 'Mode',
+      'tab.wallpaper': 'Wallpaper',
       'tab.rollback': 'Rollback',
       'tab.tools': 'Capabilities',
       'tab.compat': 'Compatibility',
@@ -122,6 +124,12 @@ window.__ModuleLoader__.load({
 .moren-hero .sub { color: var(--dsw-alias-label-secondary, #777); font-size: .85em; margin-left: auto; }
 .moren-hero .ops { display: flex; gap: 8px; flex-wrap: wrap; width: 100%; }
 @media (max-width: 700px) { .moren-line .hint { margin-left: 0; text-align: left; } .moren-page { padding: 16px 14px 40px; } }
+.moren-wallpaper-preview { width: 100%; max-height: 260px; object-fit: cover; border-radius: 10px; border: 1px solid var(--dsw-alias-border-l1, rgba(127,127,127,.25)); display: block; }
+.moren-wallpaper-empty { padding: 28px 12px; text-align: center; color: var(--dsw-alias-label-secondary, #777); border: 1px dashed var(--dsw-alias-border-l1, rgba(127,127,127,.3)); border-radius: 10px; }
+.moren-slider { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .9em; }
+.moren-slider input[type="range"] { flex: 1; min-width: 140px; accent-color: var(--dsw-alias-brand-primary, #2f6b4f); }
+.moren-slider output { min-width: 48px; text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; color: var(--dsw-alias-label-secondary, #777); }
+.moren-select { font: inherit; color: var(--dsw-alias-label-primary, currentColor); background: var(--dsw-alias-bg-layer-2, rgba(127,127,127,.08)); border: 1px solid var(--dsw-alias-border-l1, rgba(127,127,127,.3)); border-radius: 8px; padding: 6px 10px; }
 `
 
     const GLYPH = h('svg', { className: 'moren-icon-btn', viewBox: '0 0 64 64', 'aria-hidden': 'true' },
@@ -144,6 +152,70 @@ window.__ModuleLoader__.load({
       })
       const data = await response.json().catch(() => ({}))
       if (!response.ok || data?.ok === false) throw new Error(data?.error || `HTTP ${response.status}`)
+      return data
+    }
+
+    // Global wallpaper layer. Body's own background is cleared only while the
+    // wallpaper is on; panels keep their layer backgrounds, so contrast stays.
+    const WALLPAPER_CSS = `
+html.moren-wallpaper body {
+  background: transparent !important;
+  isolation: isolate;
+}
+html.moren-wallpaper body::before {
+  content: "";
+  position: fixed;
+  inset: -48px;
+  z-index: -2;
+  pointer-events: none;
+  background-image: var(--moren-wallpaper-image);
+  background-size: var(--moren-wallpaper-size, cover);
+  background-position: center center;
+  background-repeat: no-repeat;
+  opacity: var(--moren-wallpaper-opacity, 1);
+  filter: blur(var(--moren-wallpaper-blur, 0px));
+  transform: scale(1.03);
+}
+html.moren-wallpaper body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: rgba(0, 0, 0, var(--moren-wallpaper-dim, 0));
+}
+html.moren-wallpaper #root {
+  position: relative;
+  z-index: 0;
+  background: transparent !important;
+}
+html.moren-wallpaper #root > div {
+  background-color: transparent !important;
+}
+`
+
+    function paintWallpaper(settings) {
+      try {
+        const root = document.documentElement
+        const enabled = Boolean(settings?.enabled && settings?.url)
+        root.classList.toggle('moren-wallpaper', enabled)
+        if (!enabled) {
+          for (const name of ['--moren-wallpaper-image', '--moren-wallpaper-opacity', '--moren-wallpaper-blur', '--moren-wallpaper-dim', '--moren-wallpaper-size']) {
+            root.style.removeProperty(name)
+          }
+          return
+        }
+        root.style.setProperty('--moren-wallpaper-image', `url("${settings.url}")`)
+        root.style.setProperty('--moren-wallpaper-opacity', String(Math.max(0, Math.min(100, Number(settings.opacity ?? 100))) / 100))
+        root.style.setProperty('--moren-wallpaper-blur', `${Math.max(0, Math.min(40, Number(settings.blur ?? 0)))}px`)
+        root.style.setProperty('--moren-wallpaper-dim', String(Math.max(0, Math.min(90, Number(settings.dim ?? 25))) / 100))
+        root.style.setProperty('--moren-wallpaper-size', settings.fit === 'contain' ? 'contain' : 'cover')
+      } catch { /* non-browser context */ }
+    }
+
+    async function loadWallpaper() {
+      const data = await api('wallpaper')
+      paintWallpaper(data)
       return data
     }
 
@@ -267,6 +339,112 @@ window.__ModuleLoader__.load({
           h('p', { className: 'moren-note' }, '若你之前已有回退（purge 的 .bak / 手动备份），插件会自动检查；不可用时用 Moren 快照替代。')))
     }
 
+    function Wallpaper({ data, notify, refresh }) {
+      const current = data.wallpaper ?? {}
+      const [opacity, setOpacity] = useState(current.opacity ?? 100)
+      const [blur, setBlur] = useState(current.blur ?? 0)
+      const [dim, setDim] = useState(current.dim ?? 25)
+      const [fit, setFit] = useState(current.fit === 'contain' ? 'contain' : 'cover')
+      const [busy, setBusy] = useState(false)
+      const fileRef = useRef(null)
+
+      useEffect(() => {
+        setOpacity(current.opacity ?? 100)
+        setBlur(current.blur ?? 0)
+        setDim(current.dim ?? 25)
+        setFit(current.fit === 'contain' ? 'contain' : 'cover')
+      }, [current.url, current.opacity, current.blur, current.dim, current.fit])
+
+      const upload = (file) => {
+        if (!file) return
+        if (file.size > 20 * 1024 * 1024) {
+          notify({ ok: false, text: '图片超过 20MB 限制' })
+          return
+        }
+        const reader = new FileReader()
+        reader.onload = async () => {
+          setBusy(true)
+          try {
+            const next = await api('wallpaper-upload', { data: String(reader.result || ''), mime: file.type, name: file.name })
+            paintWallpaper(next)
+            notify({ ok: true, text: `壁纸已上传：${file.name}` })
+            await refresh()
+          } catch (cause) {
+            notify({ ok: false, text: String(cause?.message ?? cause) })
+          } finally {
+            setBusy(false)
+          }
+        }
+        reader.onerror = () => notify({ ok: false, text: '读取图片失败' })
+        reader.readAsDataURL(file)
+      }
+
+      const save = async (enabled = true) => {
+        setBusy(true)
+        try {
+          const next = await api('wallpaper-settings', { enabled, opacity, blur, dim, fit })
+          paintWallpaper(next)
+          notify({ ok: true, text: enabled ? '壁纸设置已应用' : '壁纸已关闭' })
+          await refresh()
+        } catch (cause) {
+          notify({ ok: false, text: String(cause?.message ?? cause) })
+        } finally {
+          setBusy(false)
+        }
+      }
+
+      const clear = async () => {
+        if (!window.confirm('删除当前壁纸并关闭？')) return
+        setBusy(true)
+        try {
+          const next = await api('wallpaper-clear')
+          paintWallpaper(next)
+          notify({ ok: true, text: '壁纸已清除' })
+          await refresh()
+        } catch (cause) {
+          notify({ ok: false, text: String(cause?.message ?? cause) })
+        } finally {
+          setBusy(false)
+        }
+      }
+
+      return h(React.Fragment, null,
+        h(Card, { title: 'DSH 壁纸' },
+          current.url
+            ? h('img', { className: 'moren-wallpaper-preview', src: current.url, alt: '当前壁纸' })
+            : h('div', { className: 'moren-wallpaper-empty' }, '还没有自定义壁纸。上传一张图片即可作为 DSH Web 的背景。'),
+          h('div', { className: 'moren-actions' },
+            h('button', { className: 'moren-btn primary', disabled: busy, onClick: () => fileRef.current?.click() }, busy ? h('span', { className: 'moren-spin' }) : (current.url ? '更换图片' : '上传图片')),
+            h('button', { className: 'moren-btn', disabled: busy || !current.url, onClick: clear }, '清除壁纸'),
+            h('input', {
+              ref: fileRef,
+              type: 'file',
+              accept: 'image/png,image/jpeg,image/webp,image/gif',
+              style: { display: 'none' },
+              onChange: (event) => { const file = event.target.files?.[0]; event.target.value = ''; upload(file) },
+            })),
+          h('p', { className: 'moren-note' }, '支持 PNG / JPEG / WebP / GIF，最大 20MB；文件保存在 $DSH_HOME/moren/wallpaper，刷新页面后仍然生效。'),
+          current.url ? h('p', { className: 'moren-note' }, `当前：${current.name || current.file} · ${Math.round((current.size || 0) / 1024)} KB · ${current.enabled ? '已启用' : '已关闭'}`) : null),
+        h(Card, { title: '显示参数' },
+          h('label', { className: 'moren-slider' },
+            h('span', null, '不透明度'), h('input', { type: 'range', min: 10, max: 100, value: opacity, onChange: (event) => setOpacity(Number(event.target.value)) }), h('output', null, `${opacity}%`)),
+          h('label', { className: 'moren-slider' },
+            h('span', null, '模糊'), h('input', { type: 'range', min: 0, max: 40, value: blur, onChange: (event) => setBlur(Number(event.target.value)) }), h('output', null, `${blur}px`)),
+          h('label', { className: 'moren-slider' },
+            h('span', null, '压暗'), h('input', { type: 'range', min: 0, max: 90, value: dim, onChange: (event) => setDim(Number(event.target.value)) }), h('output', null, `${dim}%`)),
+          h('div', { className: 'moren-actions' },
+            h('label', { className: 'moren-line', style: { border: 0, padding: 0, margin: 0 } },
+              h('span', { className: 'name' }, '铺满方式'),
+              h('select', { className: 'moren-select', value: fit, onChange: (event) => setFit(event.target.value) },
+                h('option', { value: 'cover' }, '铺满（cover）'),
+                h('option', { value: 'contain' }, '完整显示（contain）'))),
+            h('button', { className: 'moren-btn primary', disabled: busy || !current.url, onClick: () => save(true) }, '应用设置'),
+            h('button', { className: 'moren-btn', disabled: busy || !current.url, onClick: () => save(false) }, '关闭壁纸'))),
+        h(Card, { title: '说明' },
+          h('p', null, '壁纸是纯 CSS 背景层：不改 DSH 前端代码、不写 DOM 组件，只给 body 加一个固定背景层。面板与文字仍使用主题层背景，压暗可提高可读性。'),
+          h('p', { className: 'moren-note' }, '如果你在使用桌面客户端而不是 Web，这个入口只在 Web GUI 生效。')))
+    }
+
     function Page() {
       const [tab, setTab] = useState('status')
       const [data, setData] = useState(null)
@@ -279,6 +457,7 @@ window.__ModuleLoader__.load({
           setError(null)
           const next = await api('status')
           setData(next)
+          paintWallpaper(next.wallpaper)
         } catch (cause) {
           setError(String(cause?.message ?? cause))
         }
@@ -301,7 +480,7 @@ window.__ModuleLoader__.load({
       }, [load])
 
       const tabs = [
-        ['status', '状态'], ['mode', '模式'], ['rollback', '回退'], ['tools', '能力'], ['compat', '兼容'], ['docs', '教程'],
+        ['status', '状态'], ['mode', '模式'], ['wallpaper', '壁纸'], ['rollback', '回退'], ['tools', '能力'], ['compat', '兼容'], ['docs', '教程'],
       ]
       const healthy = data?.summary?.allGreen && data?.rollback?.healthy
       return h('div', { className: 'moren-page' },
@@ -337,6 +516,7 @@ window.__ModuleLoader__.load({
         !data && !error ? h('div', { className: 'moren-empty' }, h('span', { className: 'moren-spin' }), ' 读取中…') : null,
         data && tab === 'status' ? h(Status, { data }) : null,
         data && tab === 'mode' ? h(Mode, { data }) : null,
+        data && tab === 'wallpaper' ? h(Wallpaper, { data, notify: setNotice, refresh: load }) : null,
         data && tab === 'rollback' ? h(Rollback, { data, run, busy }) : null,
         data && tab === 'tools' ? h(Tools, { data }) : null,
         data && tab === 'compat' ? h(Compat, { data }) : null,
@@ -348,6 +528,21 @@ window.__ModuleLoader__.load({
       inject: ['slots', 'locale'],
       apply(ctx) {
         ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'moren: locale')
+
+        ctx.effect(() => {
+          const style = document.createElement('style')
+          style.id = 'moren-wallpaper-style'
+          style.textContent = WALLPAPER_CSS
+          document.head.appendChild(style)
+          loadWallpaper().catch(() => {})
+          return () => {
+            style.remove()
+            document.documentElement.classList.remove('moren-wallpaper')
+            for (const name of ['--moren-wallpaper-image', '--moren-wallpaper-opacity', '--moren-wallpaper-blur', '--moren-wallpaper-dim', '--moren-wallpaper-size']) {
+              document.documentElement.style.removeProperty(name)
+            }
+          }
+        }, 'moren: wallpaper layer')
         const t = ctx.locale.bind(NS)
 
         ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({

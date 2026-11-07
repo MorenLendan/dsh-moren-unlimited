@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.2 — 2026-11-07
+
+- 新增左侧栏「壁纸」页：上传 PNG/JPEG/WebP/GIF（最大 20MB）作为 DSH Web 背景
+- 壁纸保存到 `$DSH_HOME/moren/wallpaper`，设置保存到 `wallpaper.json`，刷新/重启后仍生效
+- 支持不透明度、模糊、压暗、cover/contain；纯 CSS 背景层，不改 DSH 前端
+- 壁纸设置纳入回退快照（只快照 JSON，不复制大图）
+
 ## 1.0.1 — 2026-11-07
 
 - 回退根因修复：`profile/...` 快照路径现在映射到**实际 profile 目录**；1.0.0 会写到 `$DSH_HOME/profile/`，真实 profile 完全没变，看起来“恢复成功”但什么都没回退

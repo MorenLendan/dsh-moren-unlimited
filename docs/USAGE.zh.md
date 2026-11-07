@@ -135,7 +135,25 @@ moren_token_audit({ action: "compact", path: "/data/huge.log", outPath: "/tmp/hu
 
 会报告字符数、行数、最长行、估算 Token、压缩后大小与建议。
 
-### 3.6 回退
+### 3.6 壁纸
+
+左侧栏 **Moren → 壁纸**：
+
+- 上传 PNG / JPEG / WebP / GIF，最大 20MB
+- 不透明度 10–100%、模糊 0–40px、压暗 0–90%
+- 铺满（cover）/ 完整显示（contain）
+- 「应用设置」立即生效；「关闭壁纸」保留文件；「清除壁纸」删除文件
+
+存储：
+
+```text
+$DSH_HOME/moren/wallpaper.json      # 设置
+$DSH_HOME/moren/wallpaper/<sha>.png # 图片
+```
+
+壁纸是 `body::before` 固定背景层，不改 DSH 前端；面板仍用主题层背景，压暗可保证可读性。回退快照只备份 `wallpaper.json`，不复制大图。
+
+### 3.7 回退
 
 ```js
 moren_snapshot({ action: "create", label: "before-config" })
