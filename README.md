@@ -36,9 +36,17 @@ npm i -g @deepseek-ai/dsh
 dsh --profile web
 ```
 
-### 2.2 安装本插件（三选一）
+### 2.2 安装本插件（四选一）
 
-**0. 一条命令从 GitHub（公开后）**
+**0. 官方 Release tarball（推荐，和 purge 一样的命令）**
+
+```bash
+dsh plugin --profile web add "https://github.com/MorenLendan/dsh-moren-unlimited/releases/download/v1.0.2/dsh-moren-unlimited-1.0.2.tgz"
+```
+
+DSH 0.2.2 会在 `pnpm add` 后自动把 `dsh-moren-unlimited` 写进 `dsh.profile.bundles`；已实测。
+
+**0b. 远程安装脚本**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MorenLendan/dsh-moren-unlimited/main/scripts/install-remote.sh | bash
