@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.3 — 2026-11-07
+
+- 修复 purge 对话回退按钮在 DSH 0.2.2 下无反应：补回 `uiWorkspace.selection` 会话绑定（`uiSession.current` / `sessions.list` 双来源）
+- 修复壁纸在 AppFrame 与 ConversationRoot 被 `--dsw-alias-bg-base` 背景盖住
+- 修复壁纸不透明度/模糊不生效：移除重复 html 背景层
+- 发布 Release 1.0.3 tarball
+
 ## 1.0.2 — 2026-11-07
 
 - 壁纸在聊天/主界面不显示：清理 AppFrame 与 ConversationRoot 的 `--dsw-alias-bg-base` 背景层
