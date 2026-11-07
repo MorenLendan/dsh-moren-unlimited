@@ -368,22 +368,27 @@ html.moren-wallpaper [data-conversation-content] {
     function installPurgeRewindCompat(host) {
       const workspace = host.uiWorkspace
       const sessions = host.sessions
+      const uiSession = host.uiSession
       if (!workspace || !sessions || workspace.selection) return () => {}
-      const selection = {
-        getSnapshot: () => {
-          try {
-            const snapshot = sessions.list?.getSnapshot?.()
-            if (typeof snapshot?.current === 'string' && snapshot.current) return { sessionId: snapshot.current }
-            const rows = Object.values(snapshot?.byId ?? {})
-            const main = rows.find((row) => (row?.retainedBy?.mainView ?? 0) > 0)
-            if (main?.id) return { sessionId: main.id }
-            const first = rows.find((row) => typeof row?.id === 'string')
-            return { sessionId: first?.id ?? '' }
-          } catch {
-            return { sessionId: '' }
-          }
-        },
+      const activeSessionId = () => {
+        try {
+          const current = uiSession?.current?.getSnapshot?.()
+          if (typeof current?.key === 'string' && current.key) return current.key
+          if (typeof uiSession?.current?.value?.key === 'string' && uiSession.current.value.key) return uiSession.current.value.key
+        } catch { /* fall through */ }
+        try {
+          const snapshot = sessions.list?.getSnapshot?.()
+          if (typeof snapshot?.current === 'string' && snapshot.current) return snapshot.current
+          const rows = Object.values(snapshot?.byId ?? {})
+          const main = rows.find((row) => (row?.retainedBy?.mainView ?? 0) > 0)
+          if (main?.id) return main.id
+          const first = rows.find((row) => typeof row?.id === 'string')
+          return first?.id ?? ''
+        } catch {
+          return ''
+        }
       }
+      const selection = { getSnapshot: () => ({ sessionId: activeSessionId() }) }
       try {
         Object.defineProperty(workspace, 'selection', { value: selection, configurable: true })
         return () => {
@@ -392,7 +397,14 @@ html.moren-wallpaper [data-conversation-content] {
           } catch { /* ignore */ }
         }
       } catch {
-        return () => {}
+        try {
+          workspace.selection = selection
+          return () => {
+            try { if (workspace.selection === selection) delete workspace.selection } catch { /* ignore */ }
+          }
+        } catch {
+          return () => {}
+        }
       }
     }
 
@@ -605,7 +617,7 @@ html.moren-wallpaper [data-conversation-content] {
         }, 'moren: wallpaper layer')
         const t = ctx.locale.bind(NS)
 
-        ctx.inject(['uiWorkspace', 'sessions'], (host) => {
+        ctx.inject(['uiWorkspace', 'sessions', 'uiSession'], (host) => {
           host.effect(() => installPurgeRewindCompat(host), 'moren: purge rewind session shim')
         })
 
