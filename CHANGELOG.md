@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.0 — 2026-11-07
+
+- 移除 Moren 文件快照回退（`moren_snapshot`、快照 API、页面快照表、自动修复全部删除）
+- 保留并增强 DSH 对话回退：上一步 / 上一轮（含子代理）/ 全部回退，portal 菜单
+- 集成 REA 6.8.0 MCP：`mcp-rea` 行，229 个逆向工具，先 `tool_activate({namespace:"rea"})`
+- 新增 `moren_intel`：DDG/Bing/GitHub/SearXNG 搜索、HTTP/SOCKS/Tor fetch、报告归档
+- 编码器新增 base85、quoted-printable、CRC32、HMAC、XOR
+- 安装器自动安装 `rea-agents@6.8.0`（`--no-rea` 可跳过）
+
 ## 1.0.6 — 2026-11-07
 
 - 输入框「回退 ▾」改为三选项菜单：回退上一步 / 回退上一轮（含子代理）/ 全部回退

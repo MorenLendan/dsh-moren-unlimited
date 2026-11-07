@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Post-install verifier: reads the live plugin API (no browser auth needed for
- * plugin routes) and checks mode registration, rollback health and client graph.
+ * plugin routes) and checks mode registration, REA and client graph.
  *
  * Usage: node scripts/verify.mjs [--url http://127.0.0.1:3080] [--json]
  */
@@ -36,7 +36,7 @@ try {
     plugin: status.plugin,
     dsh: status.dsh,
     mode: status.presets,
-    rollback: { healthy: status.rollback?.healthy, count: status.rollback?.count, dir: status.rollback?.dir },
+    rea: status.rea,
     purge: { installed: status.purge?.installed, version: status.purge?.version, hostBackup: status.purge?.hostBackup?.backup_files ?? 0 },
     liangshen: status.liangshen,
     client,
@@ -49,11 +49,12 @@ try {
     console.log(`dsh-moren-unlimited ${status.plugin?.version ?? ''}`)
     console.log(`  ${yes(status.presets?.parent?.registered)} 模式 ${status.presets?.parent?.id} (${status.presets?.parent?.name})`)
     console.log(`  ${yes(status.presets?.child?.registered)} 子预设 ${status.presets?.child?.id}`)
-    console.log(`  ${yes(status.rollback?.healthy)} 回退健康 (${status.rollback?.count ?? 0} 份快照)`)
+    console.log(`  ${yes(status.rea?.installed)} REA 逆向 (${status.rea?.tools ?? 0} tools)
+`)
     console.log(`  ${yes(status.purge?.installed)} dsh-purge ${status.purge?.version ?? ''}；宿主备份 ${status.purge?.hostBackup?.backup_files ?? 0} 个`)
     console.log(`  ${yes(status.liangshen?.installed)} 梁神模式 ${status.liangshen?.version ?? ''}`)
     console.log(`  ${client.registered === null ? '…' : yes(client.registered)} 客户端模块${client.registered ? ` (${client.entry?.url ?? 'in graph'})` : ''}${client.note ? ` — ${client.note}` : ''}`)
-    const bad = (status.checks ?? []).filter((check) => !check.ok && !['ffmpeg', 'rollback-purge'].includes(check.id))
+    const bad = (status.checks ?? []).filter((check) => !check.ok && !['ffmpeg'].includes(check.id))
     if (bad.length) {
       console.log('\n需要处理：')
       for (const check of bad) console.log(`  - ${check.label}: ${check.value} (${check.hint})`)

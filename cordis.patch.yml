@@ -18,7 +18,3 @@
         dispatcher: true
         # 大工具结果自动折叠阈值（字符）；0 关闭。
         tokenGuardChars: 24000
-        # 启动时自动检查回退快照，损坏则建立新的健康基线。
-        autoRepairRollback: true
-        # 回退快照最多保留份数。
-        snapshotKeep: 20

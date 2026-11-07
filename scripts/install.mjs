@@ -22,12 +22,13 @@ const manifest = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json
 const name = manifest.name
 
 function parseArgs(argv) {
-  const options = { profile: process.env.DSH_PROFILE || 'web', home: process.env.DSH_HOME || path.join(os.homedir(), '.dsh'), remove: false }
+  const options = { profile: process.env.DSH_PROFILE || 'web', home: process.env.DSH_HOME || path.join(os.homedir(), '.dsh'), remove: false, rea: true }
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i]
     if (arg === '--profile') options.profile = argv[++i]
     else if (arg === '--home') options.home = argv[++i]
     else if (arg === '--remove') options.remove = true
+    else if (arg === '--no-rea') options.rea = false
     else if (arg === '--help' || arg === '-h') options.help = true
     else throw new Error(`unknown argument: ${arg}`)
   }
@@ -49,6 +50,17 @@ const profileDir = path.join(options.home, 'profiles', options.profile)
 const profileManifestPath = path.join(profileDir, 'package.json')
 if (!fs.existsSync(profileManifestPath)) {
   fail(`profile "${options.profile}" 尚未初始化。先运行一次：dsh --profile ${options.profile}`)
+}
+
+if (options.rea && !options.remove) {
+  const rea = spawnSync('rea', ['--version'], { encoding: 'utf8' })
+  if (rea.status !== 0) {
+    console.log('[moren] REA 未安装，安装 rea-agents@6.8.0 ...')
+    const installRea = spawnSync('npm', ['i', '-g', 'rea-agents@6.8.0'], { stdio: 'inherit' })
+    if (installRea.status !== 0) console.warn('[moren] REA 安装失败；Moren 模式仍可用，但 mcp__rea__* 不会出现。')
+  } else {
+    console.log(`[moren] REA 已安装：${String(rea.stdout || '').trim()}`)
+  }
 }
 
 const pnpm = spawnSync('pnpm', ['--version'], { encoding: 'utf8' })

@@ -23,7 +23,7 @@ status=$(curl -sS -o /tmp/moren-gh-create.json -w '%{http_code}' \
   -X POST "${API}/user/repos" \
   -H "Authorization: Bearer ${GITHUB_TOKEN}" \
   -H "Accept: application/vnd.github+json" \
-  -d "{\"name\":\"${REPO}\",\"private\":false,\"description\":\"Moren unrestricted LiangShen mode for DSH: purge unrestricted + unrestricted subagents + LiangShen, with media, codec, token guard and rollback.\",\"has_issues\":true,\"has_wiki\":false}")
+  -d "{\"name\":\"${REPO}\",\"private\":false,\"description\":\"Moren unrestricted LiangShen mode for DSH: purge unrestricted + unrestricted subagents + LiangShen, with media, codec, token guard, REA MCP and intel.\",\"has_issues\":true,\"has_wiki\":false}")
 if [ "$status" = "201" ]; then
   echo "[moren] repo created"
 elif [ "$status" = "422" ]; then

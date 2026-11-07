@@ -2,8 +2,8 @@
  * dsh-moren-unlimited — host half.
  *
  * Declares two agent presets (parent + unrestricted-child) to the live
- * agent-preset registry, serves the left-sidebar page API, and runs the
- * rollback auto-check. It never writes another plugin's files and never patches
+ * agent-preset registry and serves the left-sidebar page API. It never writes
+ * another plugin's files and never patches
  * dsh host sources, which is what lets dsh-purge and @linxin666/dsh-liangshen
  * stay enabled at the same time.
  */
@@ -12,7 +12,6 @@ import {
   CHILD_PRESET_ID,
   PARENT_PRESET_ID,
   PLUGIN_VERSION,
-  ensureDir,
   morenHome,
   readJson,
   writeJson,
@@ -26,14 +25,6 @@ import {
   wallpaperFilePath,
   wallpaperStatus,
 } from './lib/wallpaper.js'
-import {
-  createSnapshot,
-  pruneSnapshots,
-  repairRollback,
-  restoreSnapshot,
-  rollbackStatus,
-  verifySnapshot,
-} from './lib/snapshot.js'
 
 export const name = 'moren-unlimited'
 export const inject = ['systemPrompt']
@@ -45,12 +36,10 @@ const DEFAULTS = {
   dispatcher: true,
   presentation: 'ptc',
   tokenGuardChars: 24000,
-  autoRepairRollback: true,
-  snapshotKeep: 20,
 }
 
 const ANNOUNCEMENT_ORDER = 151
-const ANNOUNCEMENT = `本机已启用 dsh-moren-unlimited：新建会话的预设选择器里可选「Moren无限制梁神模式」（子预设「Moren无限制梁神模式 · 无限制子任务」供 subagent 使用）。该模式合并 dsh-purge 的无限制模式/无限制子任务与梁神模式：极简 persona + PTC 工具面 + 工具分页 + 事实登记 + 子任务路由守卫 + 深度 10 的子代理；会话内审批策略为 never。附加工具：moren_media_inspect（图片/视频识别与抽帧）、moren_image_generate（本地 PNG 生图）、moren_codec（编解码/哈希）、moren_token_audit（Token 估算与压缩）、moren_snapshot（回退快照）。超过阈值的工具输出会被自动折叠到 $DSH_HOME/moren/spill。左侧栏「Moren」入口提供状态、兼容、回退与教程。`
+const ANNOUNCEMENT = `本机已启用 dsh-moren-unlimited：新建会话的预设选择器里可选「Moren无限制梁神模式」（子预设「Moren无限制梁神模式 · 无限制子任务」供 subagent 使用）。该模式合并 dsh-purge 的无限制模式/无限制子任务与梁神模式：极简 persona + PTC 工具面 + 工具分页 + 事实登记 + 子任务路由守卫 + 深度 10 的子代理；会话内审批策略为 never。附加工具：moren_media_inspect（图片/视频识别与抽帧）、moren_image_generate（本地 PNG 生图）、moren_codec（编解码/哈希）、moren_token_audit（Token 估算与压缩）。超过阈值的工具输出会被自动折叠到 $DSH_HOME/moren/spill。左侧栏「Moren」入口提供状态、兼容、壁纸、能力与教程。`
 
 function resolveConfig(config) {
   const value = config && typeof config === 'object' ? config : {}
@@ -62,8 +51,6 @@ function resolveConfig(config) {
     dispatcher: read('dispatcher') !== false,
     presentation: read('presentation') === 'native' ? 'native' : 'ptc',
     tokenGuardChars: Math.max(0, Number(read('tokenGuardChars') ?? DEFAULTS.tokenGuardChars) || 0),
-    autoRepairRollback: read('autoRepairRollback') !== false,
-    snapshotKeep: Math.max(1, Number(read('snapshotKeep') ?? DEFAULTS.snapshotKeep) || DEFAULTS.snapshotKeep),
   }
 }
 
@@ -252,11 +239,6 @@ export function apply(ctx, rawConfig) {
       let payload
       switch (op) {
         case 'status': payload = state(); break
-        case 'snapshot': payload = createSnapshot({ reason: 'page', label: body.label ?? 'page' }); break
-        case 'verify': payload = body.id ? verifySnapshot(String(body.id)) : rollbackStatus({ force: true }); break
-        case 'restore': payload = restoreSnapshot(String(body.id ?? '')); break
-        case 'repair': payload = repairRollback(); break
-        case 'prune': payload = pruneSnapshots(Number(body.keep ?? config.snapshotKeep)); break
         case 'wallpaper': payload = wallpaperStatus(); break
         case 'wallpaper-upload': payload = uploadWallpaper(body); break
         case 'wallpaper-settings': payload = saveWallpaperSettings(body); break
@@ -296,7 +278,7 @@ export function apply(ctx, rawConfig) {
           }
           break
         }
-        case 'open-docs': payload = { ok: true, docs: { readme: 'README.md', install: 'docs/INSTALL.zh.md', usage: 'docs/USAGE.zh.md', rollback: 'docs/ROLLBACK.zh.md' } }; break
+        case 'open-docs': payload = { ok: true, docs: { readme: 'README.md', install: 'docs/INSTALL.zh.md', usage: 'docs/USAGE.zh.md', rea: 'docs/REA.zh.md' } }; break
         default: payload = { ok: false, error: `unknown op: ${op}` }
       }
       sendJson(response, payload?.ok === false ? 400 : 200, payload ?? { ok: true })
@@ -335,27 +317,6 @@ export function apply(ctx, rawConfig) {
       fs.createReadStream(found.abs).pipe(response)
     } }))
   })
-
-  // Rollback auto-check: if the local rollback exists but is unusable, quarantine
-  // the damaged snapshot and lay down a healthy baseline (the "replace" path).
-  if (config.autoRepairRollback) {
-    queueMicrotask(async () => {
-      try {
-        const status = rollbackStatus()
-        const report = status.healthy ? { ok: true, healthy: true, checked_at: new Date().toISOString() } : repairRollback()
-        ensureDir(morenHome())
-        writeJson(`${morenHome()}/auto-check.json`, {
-          at: new Date().toISOString(),
-          healthy: status.healthy,
-          repaired: Boolean(report.repaired),
-          baseline: report.baseline ?? status.newest?.id ?? null,
-          purge_backups: status.purge?.backup_files ?? 0,
-        })
-      } catch (error) {
-        ctx.logger?.warn?.(`dsh-moren-unlimited: rollback auto-check failed: ${String(error?.message ?? error)}`)
-      }
-    })
-  }
 
   ctx.logger?.info?.(`dsh-moren-unlimited ${PLUGIN_VERSION} loaded`)
 }

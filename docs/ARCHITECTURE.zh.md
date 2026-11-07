@@ -15,7 +15,8 @@ Agent plane (per preset realm)
 ├── persona / minimal-prompt / tool-catalog
 ├── shell / fs / skills / plan / compaction
 ├── delegation (spawn with agentPreset=child, maxDepth=10)
-├── moren-tools (media / image / codec / token / snapshot)
+├── moren-tools (media / image / codec / token / intel)
+├── mcp-rea (REA MCP, 229 tools)
 └── moren-policy (approval never for this preset)
 ```
 
@@ -25,7 +26,7 @@ Agent plane (per preset realm)
 
 ### 父预设 `moren-unlimited-liangshen`
 
-- persona：无限制执行 + 梁神纪律 + 效率 + 回退
+- persona：无限制执行 + 梁神纪律 + 效率 + REA/情报
 - `minimal-prompt`：把系统提示压到 persona + plan policy + workspace 行
 - `tool-catalog`：PTC wire、`mcp__*` 分页、常驻 token 上限
 - `working-context` / `fact-ledger` / `subagent-routes` / `dispatch-guard`
@@ -73,20 +74,21 @@ Agent plane (per preset realm)
 5. 工具结果 → `tools/post-execute` → Token 守卫
 6. 子代理 → `subagent` → child preset → 同样流程
 
-## 5. 回退层
+## 5. REA 与情报层
 
-- `lib/snapshot.js`：快照、校验、恢复、修复
-- 宿主 `index.js`：启动自动检查、HTTP API
-- 预设 `moren_snapshot`：agent 可调用同一套函数
-
-校验不只读 manifest：会试恢复到临时目录并比对哈希，避免「manifest 看起来对、文件其实坏了」。
+- `mcp-rea` 行：`@deepseek-ai/dsh-mcp-client` 以 stdio 启动 `rea mcp`
+- 工具名 `mcp__rea__*`，默认被 `mcp__*` 分页；先 `tool_activate({ namespace: "rea" })`
+- REA 6.8.0：229 tools，覆盖二进制/JS/Electron/.NET/WASM/UI/Frida/GDB/LLDB/Hopper/Ghidra/IDA/JEB/Cutter
+- `lib/intel.js`：curl 驱动的 search/fetch/report，支持 HTTP 代理与 Tor SOCKS（.onion）
+- 情报报告写 `$DSH_HOME/moren/reports/`
 
 ## 6. 页面 API
 
 `POST /dsh-moren/api`，同源校验，`op`：
 
 - `status` — 兼容报告 + Token 统计
-- `snapshot` / `verify` / `restore` / `repair` / `prune`
+- `wallpaper` / `wallpaper-upload` / `wallpaper-settings` / `wallpaper-clear`
+- `rewind`：客户端直接调 purge `/dsh-purge/rewind`，mode=once/round
 - `stats` / `client` / `redeclare` / `open-docs`
 
 `client` 返回 boot graph 中是否包含 `dsh-moren-unlimited`，用于安装验证。

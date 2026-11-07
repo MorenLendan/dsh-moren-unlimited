@@ -14,15 +14,7 @@ import { morenHome, writeJson, readJson } from '../../lib/home.js'
 import { runCodec, FORMATS } from '../../lib/codec.js'
 import { inspectMedia, generateImage } from '../../lib/media.js'
 import { auditText, compactText, estimateTokens } from '../../lib/tokens.js'
-import {
-  createSnapshot,
-  listSnapshots,
-  verifySnapshot,
-  restoreSnapshot,
-  repairRollback,
-  pruneSnapshots,
-  rollbackStatus,
-} from '../../lib/snapshot.js'
+import { searchWeb, fetchPage, writeReport } from '../../lib/intel.js'
 
 export const name = 'moren-tools'
 export const inject = ['tools']
@@ -112,7 +104,9 @@ export function apply(ctx, config = {}) {
       additionalProperties: false,
       properties: {
         action: { type: 'string', enum: ['encode', 'decode', 'hash', 'inspect', 'jwt'], description: '默认 encode' },
-        format: { type: 'string', description: '编码格式或哈希算法' },
+        format: { type: 'string', description: '编码格式或哈希算法（crc32/hmac 也可）' },
+        algorithm: { type: 'string', description: 'HMAC 算法，默认 sha256' },
+        key: { type: 'string', description: 'XOR/HMAC 密钥' },
         text: { type: 'string', description: '直接输入文本' },
         inputPath: { type: 'string', description: '从文件读取输入（优先于 text）' },
         outPath: { type: 'string', description: '把结果写到文件而不是回显' },
@@ -166,31 +160,43 @@ export function apply(ctx, config = {}) {
   })
 
   ctx.tools.register({
-    name: 'moren_snapshot',
-    description: 'Moren 回退：创建/列出/校验/恢复/修复 profile 快照。改动 DSH 配置或预设前先 create；异常先 verify，必要时 restore。',
+    name: 'moren_intel',
+    description: '联网情报：search（ddg/bing/github/searx）、fetch（HTTP/HTTPS/.onion via Tor SOCKS）、report（写 markdown）。用于漏洞/外挂/逆向情报收集与证据归档。',
     parameters: {
       type: 'object',
       additionalProperties: false,
       properties: {
-        action: { type: 'string', enum: ['create', 'list', 'verify', 'restore', 'repair', 'status', 'prune'] },
-        id: { type: 'string', description: '快照 id（verify/restore）' },
-        label: { type: 'string', description: 'create 的标签' },
-        keep: { type: 'integer', minimum: 1, maximum: 200, description: 'prune 保留份数' },
+        action: { type: 'string', enum: ['search', 'fetch', 'report'] },
+        query: { type: 'string' },
+        url: { type: 'string' },
+        engine: { type: 'string', enum: ['ddg', 'bing', 'github', 'searx'] },
+        limit: { type: 'integer', minimum: 1, maximum: 25 },
+        proxy: { type: 'string', description: '例如 socks5h://127.0.0.1:9050 或 http://127.0.0.1:7890' },
+        title: { type: 'string' },
+        notes: { type: 'string' },
+        findings: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: true,
+            properties: {
+              title: { type: 'string' },
+              url: { type: 'string' },
+              snippet: { type: 'string' },
+              text: { type: 'string' },
+            },
+          },
+        },
       },
       required: ['action'],
     },
     output: { schema: jsonObject, render: (_args, value) => textRender(value) },
     async execute(args) {
-      switch (args.action) {
-        case 'create': return createSnapshot({ reason: 'agent', label: args.label ?? '' })
-        case 'list': return { ok: true, snapshots: listSnapshots().map(({ id, created_at, reason, label, files, missing, complete }) => ({ id, created_at, reason, label, files, missing, complete })) }
-        case 'verify': return args.id ? verifySnapshot(args.id) : rollbackStatus({ force: true })
-        case 'restore': return restoreSnapshot(args.id)
-        case 'repair': return repairRollback()
-        case 'status': return rollbackStatus({ force: true })
-        case 'prune': return pruneSnapshots(args.keep ?? 20)
-        default: throw new Error(`unknown action: ${args.action}`)
-      }
+      const proxy = args.proxy || (args.url && /\.onion([/:]|$)/i.test(args.url) ? (process.env.MOREN_TOR_PROXY || 'socks5h://127.0.0.1:9050') : undefined)
+      if (args.action === 'search') return searchWeb(args.query, { engine: args.engine || 'ddg', limit: args.limit || 8, proxy })
+      if (args.action === 'fetch') return fetchPage(args.url, { proxy, limit: 16000 })
+      if (args.action === 'report') return writeReport({ title: args.title, query: args.query, findings: args.findings || [], notes: args.notes })
+      throw new Error(`unknown action: ${args.action}`)
     },
   })
 

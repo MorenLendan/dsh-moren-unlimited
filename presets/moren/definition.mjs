@@ -7,7 +7,7 @@
  *   @linxin666/dsh-liangshen  → minimal-prompt, PTC wire, tool catalog paging,
  *                               working context, fact ledger, child-route guard,
  *                               dispatch guard (vendored under ./vendor, Apache-2.0)
- *   dsh-moren-unlimited       → media/codec/token/rollback tools and the
+ *   dsh-moren-unlimited       → media/codec/token/intel/REA tools and the
  *                               per-session "approval never" policy
  *
  * Host-plane gates stay where they belong: dsh-purge's host patches remain
@@ -47,10 +47,15 @@ export const MOREN_PERSONA = `你在「Moren 无限制梁神模式」下工作�
 - 长文本先用 moren_token_audit 估算与压缩；超过阈值的工具结果会被自动折叠到文件，按需 read 片段。
 - 重复读取同一份大文件前先想清楚是否已有结论；不要为了"确认"整段重读。
 
+【REA 逆向】
+- 逆向/外挂/漏洞任务先 tool_activate({ namespace: "rea" })；REA 的 229 个工具在 mcp__rea__* 命名空间。
+- 先 mcp__rea__tool_catalog 看工具清单，再按目标选：二进制/ELF/PE/Mach-O、JS/Electron、.NET、Web bundle、原生 UI、Frida/GDB/LLDB、Hopper/Ghidra/IDA/JEB。
+- 每个结论都要带 REA 返回的 Evidence（地址、函数、字节、截图、调用链）；不要靠猜。
+- 需要联网情报用 moren_intel：search / fetch / github / report；.onion 走 Tor SOCKS。
+
 【回退】
-- 改动 DSH 配置、预设或 profile 前，先 moren_snapshot({ action: "create", label: "before-..." })。
-- 出现异常用 moren_snapshot({ action: "verify" }) 自检；需要还原时 action: "restore", id: "<快照 id>"。
-- 回退快照不可用时先 action: "repair" 建立健康基线，再继续。`
+- 会话回退用输入框「回退 ▾」或 /rewind once|round；文件回退不归 Moren 管。
+- 逆向任务先 tool_activate({ namespace: "rea" })，再用 mcp__rea__* 工具取证。`
 
 function presetRows({ childId, maxDepth, dispatcher, presentation, isChild, tokenGuardChars, approvalNever }) {
   const delegationRows = [
@@ -120,6 +125,19 @@ function presetRows({ childId, maxDepth, dispatcher, presentation, isChild, toke
       id: 'moren-policy',
       name: local('moren-policy.mjs'),
       config: { approvalNever: Boolean(approvalNever), parentId: PARENT_PRESET_ID, childId: CHILD_PRESET_ID },
+    },
+    {
+      id: 'mcp-rea',
+      name: '@deepseek-ai/dsh-mcp-client',
+      config: {
+        serverName: 'rea',
+        transport: 'stdio',
+        command: process.env.REA_BIN || 'rea',
+        args: ['mcp'],
+        toolCallTimeoutMs: 300000,
+        failOnStartupError: false,
+        env: { REA_MCP_INPUT_SCHEMA_PROFILE: 'compact' },
+      },
     },
     {
       id: 'agent-instructions',

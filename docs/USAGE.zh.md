@@ -23,10 +23,10 @@
 ### 状态
 
 - 父/子预设是否注册
-- Moren 回退是否健康、快照数量
+- REA / ffmpeg 是否就绪
 - Token 守卫命中率、累计节省
 - purge / 梁神 / DSH 版本
-- 逐项检查（模式、回退、ffmpeg、purge 备份等）
+- 逐项检查（模式、REA、ffmpeg、purge）
 
 ### 模式
 
@@ -35,9 +35,8 @@
 
 ### 回退
 
-- 快照表：时间 / 原因 / 文件数 / 大小 / 恢复
-- 创建、校验、修复、清理
-- purge `.bak` 状态
+- 对话回退：回退上一步 / 上一轮（含子代理）/ 全部回退
+- 不处理文件快照；文件回退已移除
 
 ### 能力
 
@@ -45,11 +44,11 @@
 
 ### 兼容
 
-两插件共存说明、回退不可用时的替代路径。
+purge / 梁神 / REA 共存说明。
 
 ### 教程
 
-安装/使用/回退命令速查。
+安装 / 使用 / REA / 情报 / 回退命令速查。
 
 ---
 
@@ -151,29 +150,45 @@ $DSH_HOME/moren/wallpaper.json      # 设置
 $DSH_HOME/moren/wallpaper/<sha>.png # 图片
 ```
 
-壁纸是 `body::before` 固定背景层，不改 DSH 前端；面板仍用主题层背景，压暗可保证可读性。回退快照只备份 `wallpaper.json`，不复制大图。
+壁纸是 `body::before` 固定背景层，不改 DSH 前端；面板仍用主题层背景，压暗可保证可读性。
 
-### 3.7 回退
+### 3.7 对话回退 / REA / 情报
+
+**对话回退**
+
+- 输入框右侧「回退 ▾」→ 上一步 / 上一轮（含子代理）/ 全部回退
+- 或 Moren → 回退
+- 或 `/rewind once`、`/rewind round`
+
+**REA 逆向**
 
 ```js
-moren_snapshot({ action: "create", label: "before-config" })
-moren_snapshot({ action: "verify" })
-moren_snapshot({ action: "restore", id: "<id>" })
+tool_activate({ namespace: "rea" })
+mcp__rea__tool_catalog({})
 ```
 
-详见 [ROLLBACK.zh.md](ROLLBACK.zh.md)。
+229 个逆向工具：二进制、JS/Electron、.NET、WASM、原生 UI、Frida/GDB/LLDB、Hopper/Ghidra/IDA/JEB、Cutter/Rizin。
+
+**联网情报**
+
+```js
+moren_intel({ action: "search", query: "product CVE", engine: "ddg" })
+moren_intel({ action: "fetch", url: "https://example.com/advisory" })
+moren_intel({ action: "fetch", url: "http://xxxx.onion/", proxy: "socks5h://127.0.0.1:9050" })
+moren_intel({ action: "report", title: "research", findings: [...] })
+```
 
 ---
 
 ## 4. 推荐工作流
 
-### 改 DSH 配置前
+### 逆向 / 外挂情报
 
 ```text
-1. moren_snapshot({ action: "create", label: "before-cordis-patch" })
-2. 编辑 ~/.dsh/profiles/web/cordis.patch.yml
-3. 重启 / 重新注册
-4. 出问题 → moren_snapshot({ action: "verify" }) → restore
+1. tool_activate({ namespace: "rea" })
+2. mcp__rea__tool_catalog / analyze / binary_session 取证
+3. moren_intel search/fetch 补外部情报
+4. moren_intel report 归档证据
 ```
 
 ### 处理大日志
@@ -228,4 +243,4 @@ subagent({ prompt: "第一行写边界与验收；只做 X", agent_preset: "more
 
 ## 7. 排错
 
-见 [INSTALL.zh.md](INSTALL.zh.md#6-常见错误) 与 [ROLLBACK.zh.md](ROLLBACK.zh.md)。
+见 [INSTALL.zh.md](INSTALL.zh.md#6-常见错误)。

@@ -33,7 +33,7 @@ cd dsh-moren-unlimited
 ### 2.0 官方 Release tarball（推荐）
 
 ```bash
-dsh plugin --profile web add "https://github.com/MorenLendan/dsh-moren-unlimited/releases/download/v1.0.6/dsh-moren-unlimited-1.0.6.tgz?download=1"
+dsh plugin --profile web add "https://github.com/MorenLendan/dsh-moren-unlimited/releases/download/v2.0.0/dsh-moren-unlimited-2.0.0.tgz?download=1"
 ```
 
 DSH 0.2.2 会自动把包名写进 `dsh.profile.bundles`。
@@ -78,7 +78,7 @@ node scripts/verify.mjs
 ```
 ✓ 模式 moren-unlimited-liangshen (Moren无限制梁神模式)
 ✓ 子预设 moren-unlimited-liangshen-child
-✓ 回退健康 (n 份快照)
+✓ REA 逆向 (229 tools)
 ✓ dsh-purge 1.6.x；宿主备份 0 个
 ✓ 梁神模式 0.4.x
 ✓ 客户端模块
@@ -154,7 +154,7 @@ pnpm remove dsh-moren-unlimited
 # 并从 package.json 的 dsh.profile.bundles 删掉 dsh-moren-unlimited
 ```
 
-`$DSH_HOME/moren/` 下的快照、spill、统计不会自动删除；需要彻底清理时：
+`$DSH_HOME/moren/` 下的壁纸、报告、spill、统计不会自动删除；需要彻底清理时：
 
 ```bash
 rm -rf ~/.dsh/moren
@@ -181,4 +181,4 @@ rm -rf ~/.dsh/moren
 - 本插件不改 dsh 安装目录、不改 purge/梁神包
 - 回退 API 只接受同源请求，且只操作 `$DSH_HOME` 内的白名单文件
 - `approvalNever` 只影响 **Moren 模式会话**；其它模式保持原策略
-- 快照包含 `prompt-inject.md` 与 profile 配置，注意备份目录权限（默认 0700）
+- 壁纸与情报报告写入 `$DSH_HOME/moren/`，注意目录权限（默认 0700）

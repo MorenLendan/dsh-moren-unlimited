@@ -19,12 +19,8 @@ window.__ModuleLoader__.load({
       'tab.compat': '兼容',
       'tab.docs': '教程',
       'action.refresh': '刷新',
-      'action.snapshot': '创建快照',
-      'action.verify': '校验回退',
-      'action.repair': '修复回退',
       'action.redeclare': '重新注册模式',
       'action.restore': '恢复',
-      'action.prune': '清理旧快照',
       'state.loading': '读取中…',
       'state.error': '读取失败',
       'state.green': '全部就绪',
@@ -32,8 +28,6 @@ window.__ModuleLoader__.load({
       'mode.hint': '新建会话时在模式/预设选择器里选择「Moren无限制梁神模式」。子代理默认进入「Moren无限制梁神模式 · 无限制子任务」。',
       'mode.select': '模式选择位置',
       'mode.selectBody': '新会话屏幕 → 预设选择器（与「梁神模式」「无限制模式」并列）。',
-      'rollback.hint': '快照覆盖 profile 的 cordis.patch.yml、package.json、prompt-inject.md、已安装 agent 预设与 purge override 状态。恢复前会先自动再做一份 pre-restore 快照。',
-      'rollback.empty': '还没有快照。点「创建快照」建立健康基线。',
       'tools.hint': '这些工具只在 Moren 模式（含子任务预设）里出现。',
       'compat.hint': '本插件不改 dsh 源码、不写其它插件文件，因此 purge 与梁神模式可以同时开启。',
       'docs.hint': '完整文档在仓库 docs/ 下；下面是常用片段。',
@@ -50,12 +44,8 @@ window.__ModuleLoader__.load({
       'tab.compat': 'Compatibility',
       'tab.docs': 'Docs',
       'action.refresh': 'Refresh',
-      'action.snapshot': 'Create snapshot',
-      'action.verify': 'Verify rollback',
-      'action.repair': 'Repair rollback',
       'action.redeclare': 'Re-register mode',
       'action.restore': 'Restore',
-      'action.prune': 'Prune old snapshots',
       'state.loading': 'Loading…',
       'state.error': 'Failed to load',
       'state.green': 'All ready',
@@ -63,8 +53,6 @@ window.__ModuleLoader__.load({
       'mode.hint': 'Pick “Moren unrestricted LiangShen mode” in the new-session preset picker. Subagents default to its unrestricted-subtask child preset.',
       'mode.select': 'Where to select',
       'mode.selectBody': 'New-session screen → preset picker, beside “LiangShen mode” and “Unrestricted”.',
-      'rollback.hint': 'Snapshots cover the profile cordis.patch.yml, package.json, prompt-inject.md, installed agent presets and purge override state. Restore creates a pre-restore snapshot first.',
-      'rollback.empty': 'No snapshots yet. Create one to lay down a healthy baseline.',
       'tools.hint': 'These tools are registered on the Moren preset scope only (parent and child).',
       'compat.hint': 'No dsh source is patched and no other plugin file is written, so purge and LiangShen can stay enabled together.',
       'docs.hint': 'Full docs live under docs/ in the repository. Common snippets below.',
@@ -271,7 +259,7 @@ html.moren-wallpaper [data-conversation-content] {
         h('div', { className: 'moren-grid' },
           h('div', { className: 'moren-card moren-metric' }, h('b', null, data.presets?.parent?.registered ? '已注册' : '未注册'), h('span', null, 'Moren无限制梁神模式')),
           h('div', { className: 'moren-card moren-metric' }, h('b', null, data.presets?.child?.registered ? '已注册' : '未注册'), h('span', null, '无限制子任务预设')),
-          h('div', { className: 'moren-card moren-metric' }, h('b', null, data.rollback?.healthy ? '健康' : '不可用'), h('span', null, `Moren 回退 · ${data.rollback?.count ?? 0} 份快照`)),
+          h('div', { className: 'moren-card moren-metric' }, h('b', null, data.rea?.installed ? '229 tools' : '未安装'), h('span', null, 'REA 逆向 MCP')),
           h('div', { className: 'moren-card moren-metric' }, h('b', null, `${token.hitRate ?? 0}%`), h('span', null, `令牌守卫命中 · 省 ${token.savedTokens ?? 0} tokens`))),
         h(Card, { title: '逐项检查' },
           checks.map((check) => h(Line, { key: check.id, name: check.label, ok: check.ok, value: check.value, hint: check.hint }))),
@@ -295,42 +283,14 @@ html.moren-wallpaper [data-conversation-content] {
           h('pre', { className: 'moren-code' }, `# 让宿主重新注册本模式（改了配置后）\ncurl -s -X POST http://127.0.0.1:3080/dsh-moren/api -H 'content-type: application/json' -d '{"op":"redeclare"}'`)))
     }
 
-    function Rollback({ data, run, busy, onRewind, rewindBusy }) {
-      const rollback = data.rollback ?? {}
-      const snapshots = rollback.snapshots ?? []
-      const purge = rollback.purge ?? {}
-      return h(React.Fragment, null,
-        h(Card, { title: '回退状态' },
-          h(Line, { name: 'Moren 回退', ok: rollback.healthy, value: rollback.healthy ? '可用' : '不可用', hint: rollback.dir }),
-          h(Line, { name: 'dsh-purge 宿主备份', ok: purge.available, value: purge.available ? `${purge.backup_files} 个 .bak` : '无', hint: purge.hint }),
-          h(Line, { name: '其它回退', ok: (rollback.existing ?? []).length > 0, value: (rollback.existing ?? []).length > 0 ? `${rollback.existing.length} 处` : '未发现', hint: (rollback.existing ?? []).map((item) => item.path).join('、') }),
-          h(Line, { name: '自动检查', ok: rollback.state?.ok !== false, value: rollback.state?.last_repair_at ?? rollback.state?.last_snapshot_at ?? '尚未运行' }),
-          h('p', { className: 'moren-note' }, '用户已有回退功能时会自动检查：本地快照损坏会被隔离并重建健康基线；purge 的 .bak 为空时，用 Moren 快照替代宿主回退。')),
-        h(Card, { title: `快照（${rollback.count ?? 0}）` },
-          snapshots.length === 0
-            ? h('div', { className: 'moren-empty' }, '还没有快照。点「创建快照」建立健康基线。')
-            : h('table', { className: 'moren-table' },
-              h('thead', null, h('tr', null, h('th', null, '时间'), h('th', null, '原因'), h('th', null, '文件'), h('th', null, '大小'), h('th', null, '操作'))),
-              h('tbody', null, snapshots.map((snapshot) => h('tr', { key: snapshot.id },
-                h('td', null, (snapshot.created_at ?? snapshot.id).replace('T', ' ').slice(0, 19)),
-                h('td', null, snapshot.reason ?? '—', snapshot.label ? h('div', { className: 'moren-note' }, snapshot.label) : null),
-                h('td', null, String(snapshot.files ?? 0), snapshot.missing ? h('div', { className: 'moren-note' }, `缺失 ${snapshot.missing}`) : null),
-                h('td', null, `${Math.round((snapshot.bytes ?? 0) / 1024)} KB`),
-                h('td', null, h('button', {
-                  className: 'moren-btn tiny danger',
-                  disabled: busy,
-                  onClick: () => {
-                    if (window.confirm(`恢复快照 ${snapshot.id}？\n恢复前会自动创建 pre-restore 快照。`)) run('restore', { id: snapshot.id })
-                  },
-                }, '恢复')))))))
-        , h('p', { className: 'moren-note' }, '恢复会覆盖 profile 的 patch/package/prompt-inject 与已安装预设；需要重启 dsh 才能让宿主补丁状态完全回到快照点。'),
-        h(Card, { title: '对话回退' },
-          h('p', null, '文件快照回退不处理聊天消息。下面是真正的会话回退：调用 DSH 的 /rewind，会切到保留之前上下文的新会话，并把那句放回输入框。'),
-          h('div', { className: 'moren-actions' },
-            h('button', { className: 'moren-btn primary', disabled: busy || rewindBusy, onClick: () => onRewind('once') }, rewindBusy ? h('span', { className: 'moren-spin' }) : '回退上一步'),
-            h('button', { className: 'moren-btn', disabled: busy || rewindBusy, onClick: () => onRewind('round') }, '回退上一轮（含子代理）'),
-            h('button', { className: 'moren-btn danger', disabled: busy || rewindBusy, onClick: () => onRewind('all') }, '全部回退')),
-          h('p', { className: 'moren-note' }, '输入框右侧「回退 ▾」也提供同样三个选项；它的 session 绑定由 Moren 兼容层修复。')))
+    function Rollback({ onRewind, rewindBusy }) {
+      return h(Card, { title: '对话回退' },
+        h('p', null, '调用 DSH 的 /rewind：切到保留之前上下文的新会话，并把那句放回输入框。'),
+        h('div', { className: 'moren-actions' },
+          h('button', { className: 'moren-btn primary', disabled: rewindBusy, onClick: () => onRewind('once') }, rewindBusy ? h('span', { className: 'moren-spin' }) : '回退上一步'),
+          h('button', { className: 'moren-btn', disabled: rewindBusy, onClick: () => onRewind('round') }, '回退上一轮（含子代理）'),
+          h('button', { className: 'moren-btn danger', disabled: rewindBusy, onClick: () => onRewind('all') }, '全部回退')),
+        h('p', { className: 'moren-note' }, '输入框右侧「回退 ▾」也提供同样三个选项。'))
     }
 
     const TOOL_ROWS = [
@@ -338,7 +298,6 @@ html.moren-wallpaper [data-conversation-content] {
       ['moren_image_generate', '本地确定性 PNG 生图：同一 prompt/seed 同一张图'],
       ['moren_codec', 'base64/hex/gzip/brotli/base32/base58/JWT/哈希；文件进文件出'],
       ['moren_token_audit', 'Token 估算、压缩建议、compact 写文件'],
-      ['moren_snapshot', '回退快照：create/list/verify/restore/repair/status/prune'],
     ]
 
     function Tools({ data }) {
@@ -357,8 +316,8 @@ html.moren-wallpaper [data-conversation-content] {
           h(Line, { name: 'dsh-liangshen', ok: liang.installed, value: liang.version ? `v${liang.version}` : '未安装', hint: '梁神模式' }),
           h(Line, { name: 'DSH', ok: true, value: data.dsh?.version ? `v${data.dsh.version}` : '未知' }),
           h('p', { className: 'moren-note' }, '兼容策略：唯一预设 id + 唯一面板 id + 不改宿主源码 + 不写其它插件的文件。purge 的宿主补丁由其自己的面板应用，本插件不抢这个开关。')),
-        h(Card, { title: '若回退不可用' },
-          h('p', null, '自动检查会在宿主启动时运行。发现快照损坏时：隔离到 *.broken-<时间戳>，并建立新的健康基线；页面上的「修复回退」可手动重跑。')))
+        h(Card, { title: 'REA 逆向' },
+          h('p', null, 'REA 以 MCP 接入，命名空间 mcp__rea__*；进入会话后先 tool_activate({ namespace: "rea" })。229 个逆向工具，覆盖二进制、JS/Electron、.NET、Web、原生 UI。')))
     }
 
     function Docs({ data }) {
@@ -369,10 +328,9 @@ html.moren-wallpaper [data-conversation-content] {
           h('p', { className: 'moren-note' }, '也可以把目录放到 profile 后用 DSH 插件管理器 install_bundle 安装；本插件无构建步骤、无 npm 依赖。')),
         h(Card, { title: '使用' },
           h('p', null, '新建会话 → 选「Moren无限制梁神模式」→ 直接派活。复杂任务会自动用 subagent 进入子预设；子代理最多 10 层。'),
-          h('pre', { className: 'moren-code' }, `# 看状态\nmoren_snapshot({ action: "status" })\n\n# 改配置前先留快照\nmoren_snapshot({ action: "create", label: "before-config" })\n\n# 识别视频并抽帧\nmoren_media_inspect({ path: "/data/demo.mp4", frames: 6 })\n\n# 生成图片\nmoren_image_generate({ prompt: "墨绿极光，铜色点缀", width: 1024, height: 768 })`)),
-        h(Card, { title: '回退' },
-          h('pre', { className: 'moren-code' }, `moren_snapshot({ action: "verify" })\nmoren_snapshot({ action: "repair" })\nmoren_snapshot({ action: "restore", id: "<snapshot-id>" })\n\n# profile 配置改坏时\n# 1) 重启 dsh 2) 重新选择本模式`),
-          h('p', { className: 'moren-note' }, '若你之前已有回退（purge 的 .bak / 手动备份），插件会自动检查；不可用时用 Moren 快照替代。')))
+          h('pre', { className: 'moren-code' }, `# 逆向先激活 REA 命名空间\ntool_activate({ namespace: "rea" })\n\n# 识别视频并抽帧\nmoren_media_inspect({ path: "/data/demo.mp4", frames: 6 })\n\n# 生成图片\nmoren_image_generate({ prompt: "墨绿极光，铜色点缀", width: 1024, height: 768 })`)),
+        h(Card, { title: '回退（对话）' },
+          h('pre', { className: 'moren-code' }, `# 输入框右侧 回退 ▾\n# 或 Moren → 回退\n# 或直接命令\n/rewind once\n/rewind round`)))
     }
 
     /**
@@ -620,7 +578,7 @@ html.moren-wallpaper [data-conversation-content] {
         setNotice(null)
         try {
           const result = await api(op, payload)
-          setNotice({ ok: true, text: `${{ snapshot: '快照已创建', verify: '校验完成', restore: '已恢复（建议重启 dsh）', repair: '回退修复完成', prune: '清理完成', redeclare: '模式已重新注册' }[op] ?? '完成'}${result?.id ? `：${result.id}` : ''}` })
+          setNotice({ ok: true, text: op === 'redeclare' ? '模式已重新注册' : '完成' })
           await load()
         } catch (cause) {
           setNotice({ ok: false, text: String(cause?.message ?? cause) })
@@ -648,7 +606,7 @@ html.moren-wallpaper [data-conversation-content] {
       const tabs = [
         ['status', '状态'], ['mode', '模式'], ['wallpaper', '壁纸'], ['rollback', '回退'], ['tools', '能力'], ['compat', '兼容'], ['docs', '教程'],
       ]
-      const healthy = data?.summary?.allGreen && data?.rollback?.healthy
+      const healthy = data?.summary?.allGreen
       return h('div', { className: 'moren-page' },
         h('style', null, CSS),
         h('div', { className: 'moren-head' },
@@ -658,7 +616,7 @@ html.moren-wallpaper [data-conversation-content] {
             h('p', null, '无限制模式 × 无限制子任务 × 梁神模式 · 原生预设 + 媒体/编码/回退工具'))),
         h('div', { className: 'moren-strip' },
           h('span', null, h('b', null, '模式'), data?.presets?.parent?.registered ? ' 已注册' : ' 未注册'),
-          h('span', null, h('b', null, '回退'), data?.rollback?.healthy ? ' 健康' : ' 待修复'),
+          h('span', null, h('b', null, 'REA'), data?.rea?.installed ? ' 已安装' : ' 未安装'),
           h('span', null, h('b', null, 'purge'), data?.purge?.installed ? ` v${data.purge.version}` : ' 未安装'),
           h('span', null, h('b', null, '梁神'), data?.liangshen?.installed ? ` v${data.liangshen.version}` : ' 未安装'),
           h('span', null, h('b', null, 'DSH'), data?.dsh?.version ? ` v${data.dsh.version}` : ' ?')),
@@ -668,10 +626,7 @@ html.moren-wallpaper [data-conversation-content] {
             healthy ? '全部就绪' : (data ? '需要处理' : '读取中…')),
           h('span', { className: 'sub' }, data ? `v${data.plugin?.version ?? ''} · ${data.profile ?? ''}` : ''),
           h('div', { className: 'ops' },
-            h('button', { className: 'moren-btn primary', disabled: busy, onClick: () => run('snapshot', { label: 'page' }) }, busy ? h('span', { className: 'moren-spin' }) : '创建快照'),
-            h('button', { className: 'moren-btn', disabled: busy, onClick: () => run('verify') }, '校验回退'),
-            h('button', { className: 'moren-btn', disabled: busy, onClick: () => run('repair') }, '修复回退'),
-            h('button', { className: 'moren-btn', disabled: busy, onClick: () => run('redeclare') }, '重新注册模式'),
+            h('button', { className: 'moren-btn primary', disabled: busy, onClick: () => run('redeclare') }, '重新注册模式'),
             h('button', { className: 'moren-btn', disabled: busy, onClick: load }, '刷新'))),
         notice ? h('p', { className: notice.ok ? 'moren-ok' : 'moren-bad' }, notice.text) : null,
         error ? h('p', { className: 'moren-bad' }, `读取失败：${error}`) : null,
@@ -683,7 +638,7 @@ html.moren-wallpaper [data-conversation-content] {
         data && tab === 'status' ? h(Status, { data }) : null,
         data && tab === 'mode' ? h(Mode, { data }) : null,
         data && tab === 'wallpaper' ? h(Wallpaper, { data, notify: setNotice, refresh: load }) : null,
-        data && tab === 'rollback' ? h(Rollback, { data, run, busy, onRewind: doRewind, rewindBusy }) : null,
+        data && tab === 'rollback' ? h(Rollback, { onRewind: doRewind, rewindBusy }) : null,
         data && tab === 'tools' ? h(Tools, { data }) : null,
         data && tab === 'compat' ? h(Compat, { data }) : null,
         data && tab === 'docs' ? h(Docs, { data }) : null,

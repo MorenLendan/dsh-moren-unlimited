@@ -40,19 +40,19 @@ async function test(name, fn) {
 const codec = await import('../lib/codec.js')
 const media = await import('../lib/media.js')
 const wallpaper = await import('../lib/wallpaper.js')
-const snapshot = await import('../lib/snapshot.js')
 const definition = await import('../presets/moren/definition.mjs')
 
 await test('codec roundtrip: all formats', () => {
   const source = 'Moren 无限制梁神模式 123'
-  for (const format of ['base64', 'base64url', 'hex', 'url', 'urlcomponent', 'html', 'unicode', 'gzip', 'deflate', 'brotli', 'base32', 'base58', 'rot13', 'binary', 'utf16le', 'datauri']) {
+  for (const format of ['base64', 'base64url', 'hex', 'url', 'urlcomponent', 'html', 'unicode', 'gzip', 'deflate', 'brotli', 'base32', 'base58', 'base85', 'quoted-printable', 'xor', 'rot13', 'binary', 'utf16le', 'datauri']) {
     const file = path.join(temp, `codec-${format}.bin`)
-    codec.runCodec({ action: 'encode', format, text: source, outPath: file })
-    const decoded = codec.runCodec({ action: 'decode', format, inputPath: file })
+    codec.runCodec({ action: 'encode', format, text: source, outPath: file, key: 'selftest' })
+    const decoded = codec.runCodec({ action: 'decode', format, inputPath: file, key: 'selftest' })
     assert.equal(decoded.ok, true, format)
     if (format !== 'utf16le') assert.equal(decoded.text, source, format)
   }
   assert.equal(codec.runCodec({ action: 'hash', format: 'sha256', text: 'abc' }).hash, 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad')
+  assert.equal(codec.runCodec({ action: 'hash', format: 'crc32', text: 'abc' }).hash, '352441c2')
 })
 
 await test('media: generate PNG and inspect metadata', () => {
@@ -86,18 +86,14 @@ await test('wallpaper: upload, status, settings, clear', () => {
   assert.equal(cleared.url, null)
 })
 
-await test('snapshot: create, verify, restore actual profile path, keep self', () => {
-  const created = snapshot.createSnapshot({ reason: 'selftest', label: 'selftest' })
-  assert.equal(snapshot.verifySnapshot(created.id, { deep: true }).ok, true)
-  // Break the live profile, then restore.
-  fs.writeFileSync(path.join(profile, 'package.json'), '{"name":"broken"}\n')
-  const restored = snapshot.restoreSnapshot(created.id)
-  assert.equal(restored.ok, true, restored.error)
-  const live = JSON.parse(fs.readFileSync(path.join(profile, 'package.json'), 'utf8'))
-  assert.equal(live.name, 'selftest-profile')
-  assert.ok(live.dependencies['dsh-moren-unlimited'], 'self dependency re-added')
-  assert.ok(live.dsh.profile.bundles.includes('dsh-moren-unlimited'), 'self bundle re-added')
-  assert.equal(fs.existsSync(path.join(home, 'profile')), false, 'no stray $DSH_HOME/profile')
+await test('intel: HTML strip and report writer', async () => {
+  const intel = await import('../lib/intel.js')
+  const text = intel.stripHtml('<h1>Hello</h1><script>x()</script><p>Moren &amp; REA</p>')
+  assert.equal(text, 'Hello Moren & REA')
+  const report = intel.writeReport({ title: 'selftest-report', findings: [{ title: 'A', url: 'https://example.com', snippet: 'B' }] })
+  assert.equal(report.ok, true)
+  assert.ok(report.bytes > 0)
+  fs.rmSync(path.dirname(report.path), { recursive: true, force: true })
 })
 
 await test('preset: parent/child rows and key LiangShen rows', () => {
@@ -105,7 +101,7 @@ await test('preset: parent/child rows and key LiangShen rows', () => {
   const ids = []
   const walk = (rows) => { for (const row of rows) { ids.push(row.id); if (row.group === true) walk(row.config) } }
   walk(parent.plugins)
-  for (const required of ['persona', 'minimal-prompt', 'tool-catalog', 'working-context', 'tool-activate', 'fact-ledger', 'subagent-routes', 'dispatch-guard', 'str-replace-editor', 'tool-executor-ptc', 'moren-tools', 'moren-policy']) {
+  for (const required of ['persona', 'minimal-prompt', 'tool-catalog', 'working-context', 'tool-activate', 'fact-ledger', 'subagent-routes', 'dispatch-guard', 'str-replace-editor', 'tool-executor-ptc', 'moren-tools', 'moren-policy', 'mcp-rea']) {
     assert.ok(ids.includes(required), `missing ${required}`)
   }
   assert.equal(parent.plugins.find((row) => row.id === 'minimal-prompt').config.dispatcher, true)

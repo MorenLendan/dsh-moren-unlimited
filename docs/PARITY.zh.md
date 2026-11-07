@@ -58,7 +58,8 @@ done
 | `tool-ask-user` / `tool-todo` | 同名 | `allowParallelInProgress: true` |
 | `tool-web` | 同名 | 上游 `fetch: false`；Moren 打开（加法） |
 | `tool-executor-ptc` | 同名 | 随 `presentation` 开关 |
-| — | `moren-tools` | 新增：媒体/生图/codec/token/snapshot |
+| — | `moren-tools` | 新增：媒体/生图/codec/token/intel |
+| — | `mcp-rea` | 新增：REA MCP，229 个逆向工具 |
 | — | `moren-policy` | 新增：本模式会话 approval never |
 | — | `tool-schedule` | 来自 purge 无限制预设（加法） |
 
