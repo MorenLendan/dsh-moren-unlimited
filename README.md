@@ -327,7 +327,34 @@ A: 不会。本插件不写 dsh 源码，也不写 purge 的 `.bak`；宿主补�
 
 ---
 
-## 10. 许可与致谢
+## 10. 发布到 GitHub（公开）
+
+仓库已经是完整的 git 仓库，`main` 已提交。任选其一：
+
+```bash
+# A. GitHub CLI 已登录
+gh repo create dsh-moren-unlimited --public --source=. --remote=origin --push
+
+# B. Token
+GITHUB_USER=<你的用户名> GITHUB_TOKEN=<token> ./scripts/publish-github.sh
+```
+
+手动：
+
+```bash
+git remote add origin https://github.com/<你的用户名>/dsh-moren-unlimited.git
+git push -u origin main
+# 网页 Settings → 确认 Public
+```
+
+详细说明与失败排查见 [docs/GITHUB.zh.md](docs/GITHUB.zh.md)。
+
+> README/docs 里的 `YOUR_GITHUB_NAME` 是占位符；发布后替换：
+> `grep -rl YOUR_GITHUB_NAME . --exclude-dir=.git | xargs sed -i "s/YOUR_GITHUB_NAME/<你的用户名>/g"`
+
+---
+
+## 11. 许可与致谢
 
 - 本项目：Apache-2.0
 - `presets/moren/vendor/` 来自 [`@linxin666/dsh-liangshen`](https://github.com/zhu1090093659/dsh-web) 的 LiangShen 预设（Apache-2.0），保留原 `NOTICE`
