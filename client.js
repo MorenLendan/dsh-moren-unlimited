@@ -311,57 +311,6 @@ html.moren-wallpaper [data-conversation-content] {
           h('pre', { className: 'moren-code' }, `# 输入框右侧 purge 的回退按钮\n# 菜单：回退一次 / 回退上一轮\n# 或直接命令\n/rewind once\n/rewind round`)))
     }
 
-    /**
-     * dsh-purge's rewind button is registered into
-     * `conversation.input.right` and resolves the active session through
-     * `uiWorkspace.selection`. DSH 0.2.2 removed that field, so the button's
-     * `sessionId` stays empty and the click is a no-op. Expose the old shape on
-     * the live service (read-only, derived from the Session controller) so the
-     * purge button works without patching purge's bundle.
-     */
-    function installPurgeRewindCompat(host) {
-      const workspace = host.uiWorkspace
-      const sessions = host.sessions
-      const uiSession = host.uiSession || host.get?.('uiSession')
-      if (!workspace || !sessions || workspace.selection) return () => {}
-      const activeSessionId = () => {
-        try {
-          const current = uiSession?.current?.getSnapshot?.()
-          if (typeof current?.key === 'string' && current.key) return current.key
-          if (typeof uiSession?.current?.value?.key === 'string' && uiSession.current.value.key) return uiSession.current.value.key
-        } catch { /* fall through */ }
-        try {
-          const snapshot = sessions.list?.getSnapshot?.()
-          if (typeof snapshot?.current === 'string' && snapshot.current) return snapshot.current
-          const rows = Object.values(snapshot?.byId ?? {})
-          const main = rows.find((row) => (row?.retainedBy?.mainView ?? 0) > 0)
-          if (main?.id) return main.id
-          const first = rows.find((row) => typeof row?.id === 'string')
-          return first?.id ?? ''
-        } catch {
-          return ''
-        }
-      }
-      const selection = { getSnapshot: () => ({ sessionId: activeSessionId() }) }
-      try {
-        Object.defineProperty(workspace, 'selection', { value: selection, configurable: true })
-        return () => {
-          try {
-            if (workspace.selection === selection) delete workspace.selection
-          } catch { /* ignore */ }
-        }
-      } catch {
-        try {
-          workspace.selection = selection
-          return () => {
-            try { if (workspace.selection === selection) delete workspace.selection } catch { /* ignore */ }
-          }
-        } catch {
-          return () => {}
-        }
-      }
-    }
-
     function Wallpaper({ data, notify, refresh }) {
       const current = data.wallpaper ?? {}
       const [opacity, setOpacity] = useState(current.opacity ?? 100)
@@ -566,23 +515,6 @@ html.moren-wallpaper [data-conversation-content] {
           }
         }, 'moren: wallpaper layer')
         const t = ctx.locale.bind(NS)
-
-        // Install as early as possible (before the conversation composer first
-        // renders), then re-check once the optional services are injected.
-        const immediate = (() => {
-          try {
-            const workspace = ctx.get('uiWorkspace')
-            const sessions = ctx.get('sessions')
-            if (!workspace || !sessions) return undefined
-            return installPurgeRewindCompat({ uiWorkspace: workspace, sessions, uiSession: ctx.get('uiSession') })
-          } catch {
-            return undefined
-          }
-        })()
-        if (immediate) ctx.effect(() => immediate, 'moren: purge rewind session shim (early)')
-        ctx.inject(['uiWorkspace', 'sessions'], (host) => {
-          host.effect(() => installPurgeRewindCompat(host), 'moren: purge rewind session shim')
-        })
 
         ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
           name: 'sidebar.panellist',

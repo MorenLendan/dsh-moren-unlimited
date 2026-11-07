@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.2 — 2026-11-07
+
+- 本机 purge 回退改为 **fork 新会话**：从被回退 prompt 之前的 seq 分叉，旧会话保留，新会话只带之前上下文
+- 修复回退菜单位置：固定右下角，不再需要滚轮向下才能看到
+- 启动补丁同时修 `client.js` 与 `lib/rewind.js`，原文件备份 `*.moren-orig`
+
 ## 2.0.1 — 2026-11-07
 
 - 删除 Moren 自带回退 UI、菜单、slot 注册和隐藏 purge 按钮的 CSS
