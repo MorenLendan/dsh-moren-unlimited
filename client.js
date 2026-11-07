@@ -3,7 +3,8 @@ window.__ModuleLoader__.load({
   factory(require) {
     const React = require('react')
     const h = React.createElement
-    const { useState, useEffect, useCallback, useMemo } = React
+    const ReactDOM = (() => { try { return require('react-dom') } catch { return null } })()
+    const { useState, useEffect, useCallback, useMemo, useRef } = React
 
     const NS = 'settings.dsh-moren-unlimited'
     const zh = {
@@ -127,6 +128,13 @@ window.__ModuleLoader__.load({
 .moren-rewind-btn { appearance:none; display:inline-flex; align-items:center; gap:4px; height:28px; padding:0 8px; border:0; border-radius:8px; background:transparent; color:var(--dsw-alias-label-secondary, currentColor); font:12px/1 var(--ds-font-sans, system-ui, sans-serif); cursor:pointer; }
 .moren-rewind-btn:hover:not(:disabled) { background:var(--dsw-alias-interactive-bg-hover, rgba(127,127,127,.12)); color:var(--dsw-alias-label-primary, currentColor); }
 .moren-rewind-btn:disabled { opacity:.4; cursor:default; }
+.moren-rewind-wrap { position:relative; display:inline-flex; align-items:center; gap:6px; }
+.moren-rewind-menu { position:fixed; z-index:2147483000; box-sizing:border-box; min-width:248px; padding:4px; border-radius:12px; background:var(--dsw-specific-menu, #fff); color:var(--dsw-alias-label-primary, #1a1a1a); box-shadow:0 12px 32px rgba(0,0,0,.22); transform:translateY(-100%); }
+.moren-rewind-item { display:flex; flex-direction:column; gap:2px; width:100%; padding:8px 10px; border:0; border-radius:8px; background:transparent; color:inherit; text-align:left; cursor:pointer; font:12px/1.35 var(--ds-font-sans, system-ui, sans-serif); }
+.moren-rewind-item:hover { background:var(--dsw-alias-interactive-bg-hover, rgba(127,127,127,.12)); }
+.moren-rewind-item b { font-size:12.5px; font-weight:600; }
+.moren-rewind-item span { color:var(--dsw-alias-label-secondary, #777); font-size:11px; }
+.moren-rewind-note { max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--dsw-alias-label-secondary, #777); font-size:11px; }
 .moren-wallpaper-preview { width: 100%; max-height: 260px; object-fit: cover; border-radius: 10px; border: 1px solid var(--dsw-alias-border-l1, rgba(127,127,127,.25)); display: block; }
 .moren-wallpaper-empty { padding: 28px 12px; text-align: center; color: var(--dsw-alias-label-secondary, #777); border: 1px dashed var(--dsw-alias-border-l1, rgba(127,127,127,.3)); border-radius: 10px; }
 .moren-slider { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .9em; }
@@ -317,10 +325,12 @@ html.moren-wallpaper [data-conversation-content] {
                 }, '恢复')))))))
         , h('p', { className: 'moren-note' }, '恢复会覆盖 profile 的 patch/package/prompt-inject 与已安装预设；需要重启 dsh 才能让宿主补丁状态完全回到快照点。'),
         h(Card, { title: '对话回退' },
-          h('p', null, '文件快照回退不处理聊天消息。这里直接调用 DSH 的 /rewind 命令，撤回上一轮；不依赖 purge 输入框按钮。'),
+          h('p', null, '文件快照回退不处理聊天消息。下面是真正的会话回退：调用 DSH 的 /rewind，会切到保留之前上下文的新会话，并把那句放回输入框。'),
           h('div', { className: 'moren-actions' },
-            h('button', { className: 'moren-btn primary', disabled: busy || rewindBusy, onClick: onRewind }, rewindBusy ? h('span', { className: 'moren-spin' }) : '回退上一句')),
-          h('p', { className: 'moren-note' }, '如果只想把上一句放回输入框，用 purge 输入框右侧的回退按钮；它的 session 绑定已由 Moren 兼容层修复。')))
+            h('button', { className: 'moren-btn primary', disabled: busy || rewindBusy, onClick: () => onRewind('once') }, rewindBusy ? h('span', { className: 'moren-spin' }) : '回退上一步'),
+            h('button', { className: 'moren-btn', disabled: busy || rewindBusy, onClick: () => onRewind('round') }, '回退上一轮（含子代理）'),
+            h('button', { className: 'moren-btn danger', disabled: busy || rewindBusy, onClick: () => onRewind('all') }, '全部回退')),
+          h('p', { className: 'moren-note' }, '输入框右侧「回退 ▾」也提供同样三个选项；它的 session 绑定由 Moren 兼容层修复。')))
     }
 
     const TOOL_ROWS = [
@@ -418,28 +428,61 @@ html.moren-wallpaper [data-conversation-content] {
 
     function MorenRewind({ onRewind }) {
       const [busy, setBusy] = useState(false)
+      const [open, setOpen] = useState(false)
       const [notice, setNotice] = useState('')
-      const run = async () => {
+      const [pos, setPos] = useState(null)
+      const btnRef = useRef(null)
+      const run = async (mode) => {
         if (busy) return
+        setOpen(false)
         setBusy(true)
         setNotice('')
         try {
-          await onRewind()
-          setNotice('已回退')
+          const result = await onRewind(mode)
+          if (!result?.cancelled) setNotice(mode === 'all' ? `已回退 ${result?.rounds ?? 0} 轮` : '已回退')
         } catch (cause) {
           setNotice(String(cause?.message ?? cause))
         } finally {
           setBusy(false)
         }
       }
-      return h('button', {
+      const toggle = (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        if (!open) {
+          const rect = btnRef.current?.getBoundingClientRect?.()
+          if (rect) setPos({ left: Math.max(8, rect.right - 260), top: Math.max(8, rect.top - 8) })
+        }
+        setOpen((value) => !value)
+      }
+      const item = (mode, label, hint) => h('button', {
         type: 'button',
-        className: 'moren-rewind-btn',
-        title: notice || '回退上一句',
-        disabled: busy,
+        className: 'moren-rewind-item',
         onMouseDown: (event) => event.preventDefault(),
-        onClick: run,
-      }, busy ? '回退中…' : '回退')
+        onClick: (event) => { event.preventDefault(); event.stopPropagation(); run(mode) },
+      }, h('b', null, label), h('span', null, hint))
+      const menu = open ? h('div', {
+        className: 'moren-rewind-menu',
+        role: 'menu',
+        style: { left: `${pos?.left ?? 8}px`, top: `${pos?.top ?? 8}px` },
+      },
+        item('once', '回退上一步', '撤回最后一步，保留之前的上下文'),
+        item('round', '回退上一轮', '整轮撤回，包含本轮子代理'),
+        item('all', '全部回退', '反复回退上一轮，直到没有可撤内容')) : null
+      return h('div', { className: 'moren-rewind-wrap' },
+        h('button', {
+          ref: btnRef,
+          type: 'button',
+          className: 'moren-rewind-btn',
+          title: notice || '回退：上一步 / 上一轮 / 全部',
+          disabled: busy,
+          'aria-haspopup': 'menu',
+          'aria-expanded': open ? 'true' : 'false',
+          onMouseDown: (event) => event.preventDefault(),
+          onClick: toggle,
+        }, busy ? '回退中…' : '回退 ▾'),
+        menu && ReactDOM?.createPortal ? ReactDOM.createPortal(menu, document.body) : menu,
+        notice ? h('span', { className: 'moren-rewind-note' }, notice) : null)
     }
 
     function Wallpaper({ data, notify, refresh }) {
@@ -586,13 +629,14 @@ html.moren-wallpaper [data-conversation-content] {
         }
       }, [load])
 
-      const doRewind = useCallback(async () => {
+      const doRewind = useCallback(async (mode = 'once') => {
         if (!onRewind) return
         setRewindBusy(true)
         setNotice(null)
         try {
-          await onRewind()
-          setNotice({ ok: true, text: '已回退上一轮' })
+          const result = await onRewind(mode)
+          if (result?.cancelled) return
+          setNotice({ ok: true, text: mode === 'all' ? `全部回退完成：${result?.rounds ?? 0} 轮` : mode === 'round' ? '已回退上一轮（含子代理）' : '已回退上一步' })
           await load()
         } catch (cause) {
           setNotice({ ok: false, text: String(cause?.message ?? cause) })
@@ -678,33 +722,62 @@ html.moren-wallpaper [data-conversation-content] {
             return rows.find((row) => (row?.retainedBy?.mainView ?? 0) > 0)?.id ?? ''
           } catch { return '' }
         }
-        const onRewind = async () => {
-          const id = currentSessionId()
-          if (!id) throw new Error('没有当前会话')
+        const postRewind = async (id, mode) => {
           let data
           try {
             const response = await fetch(new URL('dsh-purge/rewind', appBase()), {
               method: 'POST',
               headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ sessionId: id, mode: 'once' }),
+              body: JSON.stringify({ sessionId: id, mode }),
             })
             data = await response.json().catch(() => ({}))
-            if (!response.ok || !data?.ok) throw new Error(data?.error || `回退失败 HTTP ${response.status}`)
+            if (!response.ok || !data?.ok || data.cleared === false) {
+              throw new Error(data?.error || `回退失败 HTTP ${response.status}`)
+            }
           } catch (cause) {
             if (!ctx.remote?.commands?.execute) throw cause
-            const result = await ctx.remote.commands.execute(id, '/rewind once', [])
-            if (result && (result.ok === false || result.kind === 'error')) throw new Error(result.text || result.error || '回退失败')
-            return result
+            const result = await ctx.remote.commands.execute(id, `/rewind ${mode}`, [])
+            if (result && (result.ok === false || result.kind === 'error')) {
+              throw new Error(result.text || result.error || '回退失败')
+            }
+            return { ok: true, sessionId: id, text: result?.text || '', via: 'command' }
           }
+          const target = data.sessionId || id
           try {
             const conversation = ctx.get('conversation')
             const sessions = ctx.get('sessions')
-            const scope = sessions?.scope?.(id)
-            const input = conversation?.input?.shell?.(id) || conversation?.input?.for?.(scope)
+            const scope = sessions?.scope?.(target)
+            const input = conversation?.input?.shell?.(target) || conversation?.input?.for?.(scope)
             if (data?.text) input?.setDraft?.(data.text)
           } catch { /* draft is best effort */ }
-          try { ctx.get('uiWorkspace')?.openSession?.(id) } catch { /* ignore */ }
+          try { ctx.get('uiWorkspace')?.openSession?.(target) } catch { /* ignore */ }
           return data
+        }
+
+        const onRewind = async (mode = 'once') => {
+          const action = mode === 'round' ? 'round' : mode === 'all' ? 'all' : 'once'
+          let id = currentSessionId()
+          if (!id) throw new Error('没有当前会话')
+          if (action !== 'all') return postRewind(id, action)
+          if (typeof window !== 'undefined' && !window.confirm('全部回退会反复撤销上一轮，直到没有可回退内容。继续？')) {
+            return { cancelled: true, rounds: 0 }
+          }
+          let rounds = 0
+          let target = id
+          while (rounds < 30) {
+            try {
+              const data = await postRewind(target, 'round')
+              rounds += 1
+              target = data?.sessionId || currentSessionId() || target
+              await new Promise((resolve) => setTimeout(resolve, 250))
+              const current = currentSessionId()
+              if (current) target = current
+            } catch (cause) {
+              if (rounds === 0) throw cause
+              break
+            }
+          }
+          return { all: true, rounds }
         }
 
         // Install as early as possible (before the conversation composer first
