@@ -26,7 +26,12 @@ async function call(op, payload = {}) {
 
 try {
   const status = await call('status')
-  const client = await call('client').catch((error) => ({ registered: false, error: String(error.message) }))
+  const client = await call('client').catch((error) => {
+    const message = String(error.message)
+    return /unknown op/i.test(message)
+      ? { registered: null, note: '宿主尚未重启，客户端探针不可用（重启后再跑）' }
+      : { registered: false, error: message }
+  })
   const report = {
     plugin: status.plugin,
     dsh: status.dsh,
@@ -47,7 +52,7 @@ try {
     console.log(`  ${yes(status.rollback?.healthy)} 回退健康 (${status.rollback?.count ?? 0} 份快照)`)
     console.log(`  ${yes(status.purge?.installed)} dsh-purge ${status.purge?.version ?? ''}；宿主备份 ${status.purge?.hostBackup?.backup_files ?? 0} 个`)
     console.log(`  ${yes(status.liangshen?.installed)} 梁神模式 ${status.liangshen?.version ?? ''}`)
-    console.log(`  ${yes(client.registered)} 客户端模块${client.registered ? ` (${client.entry?.url ?? 'in graph'})` : ''}`)
+    console.log(`  ${client.registered === null ? '…' : yes(client.registered)} 客户端模块${client.registered ? ` (${client.entry?.url ?? 'in graph'})` : ''}${client.note ? ` — ${client.note}` : ''}`)
     const bad = (status.checks ?? []).filter((check) => !check.ok && !['ffmpeg', 'rollback-purge'].includes(check.id))
     if (bad.length) {
       console.log('\n需要处理：')
