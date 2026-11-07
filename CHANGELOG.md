@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.1 — 2026-11-07
+
+- 回退修复：恢复旧快照时自动保留 Moren 自身（link 依赖 + bundle 行 + node_modules 链接），不再把回退工具删掉
+- 回退修复：增加 profile / DSH_HOME 归属校验，拒绝跨 profile 恢复；恢复后缓存立即失效
+- 梁神完整性：补回漏掉的 `str-replace-editor` 行
+- 梁神完整性：`dispatcher` 默认恢复为 true（1.0.0 默认 false 属于功能偏差）
+- 梁神完整性：`tool-catalog.descriptionMaxLength` 恢复 200，与上游一致
+- 诊断：区分「Moren profile 回退」与「purge 宿主 .bak 回退」，无 .bak 时明确说明
+
 ## 1.0.0 — 2026-11-07
 
 - 首个版本：`Moren无限制梁神模式` 父/子 agent 预设

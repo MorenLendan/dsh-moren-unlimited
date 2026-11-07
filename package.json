@@ -1,6 +1,6 @@
 {
   "name": "dsh-moren-unlimited",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": false,
   "description": "Moren 无限制梁神模式：把 dsh-purge 的无限制模式/无限制子任务与梁神模式合成一个原生预设，带左侧栏入口、图片与视频识别、本地生图、编码器、Token 守卫和可自检修复的回退。",
   "type": "module",
@@ -63,7 +63,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_GITHUB_NAME/dsh-moren-unlimited.git"
+    "url": "https://github.com/MorenLendan/dsh-moren-unlimited.git"
   },
   "bin": {
     "dsh-moren-install": "./scripts/install.mjs"

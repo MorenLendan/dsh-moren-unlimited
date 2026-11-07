@@ -14,7 +14,7 @@ Requires Node.js >= 24.9 and DSH.
 ```bash
 npm i -g @deepseek-ai/dsh
 
-git clone https://github.com/YOUR_GITHUB_NAME/dsh-moren-unlimited.git
+git clone https://github.com/MorenLendan/dsh-moren-unlimited.git
 dsh plugin --profile web add link:$PWD
 # restart dsh web
 ```
@@ -22,7 +22,7 @@ dsh plugin --profile web add link:$PWD
 Or:
 
 ```bash
-dsh plugin --profile web add git+https://github.com/YOUR_GITHUB_NAME/dsh-moren-unlimited.git
+dsh plugin --profile web add git+https://github.com/MorenLendan/dsh-moren-unlimited.git
 ```
 
 ## Use

@@ -31,6 +31,7 @@ export const MOREN_PERSONA = `你在「Moren 无限制梁神模式」下工作�
 - 反思熔断：同一假设不推演超过两轮，缺事实立即调用原生检测工具。
 - 行动导向：思考只用于决定下一步具体操作，不在思考中预演实现。
 - 并发探索：多处独立检查在同一轮并发发出；同类步骤合并成一次 run_code。
+- Shell 纪律：shell 进程是临时的，目录切换不跨调用保留；用 cd <path> && <cmd> 或 workdir 参数。
 - YAGNI / PDCA：单步验证单一假设，不写冗余注释；有界收敛，不在依赖链上空转。
 - 有界输出：命令输出先 grep/head/tail/wc，只读需要的窄区间，不把长日志灌回上下文。
 
@@ -99,7 +100,7 @@ function presetRows({ childId, maxDepth, dispatcher, presentation, isChild, toke
       id: 'tool-catalog',
       name: vendor('tool-catalog.mjs'),
       config: {
-        descriptionMaxLength: 180,
+        descriptionMaxLength: 200,
         presentation,
         pagedToolPatterns: ['mcp__*'],
         maxResidentTokens: 8000,
@@ -127,6 +128,11 @@ function presetRows({ childId, maxDepth, dispatcher, presentation, isChild, toke
     },
     { id: 'tool-bash', name: '@deepseek-ai/dsh-tool-bash', disabled: process.platform === 'win32' },
     { id: 'tool-pwsh', name: '@deepseek-ai/dsh-tool-pwsh', disabled: process.platform !== 'win32' },
+    {
+      id: 'str-replace-editor',
+      name: '@deepseek-ai/dsh-tool-str-replace-editor',
+      config: { maxOutputChars: 16000 },
+    },
     { id: 'tool-fs', name: '@deepseek-ai/dsh-tool-fs' },
     { id: 'tool-fs-search', name: '@deepseek-ai/dsh-tool-fs-search', config: { sampleOverCapGlobResults: false } },
     { id: 'tool-jobs', name: '@deepseek-ai/dsh-tool-jobs' },
@@ -186,7 +192,7 @@ export function buildPresetDefinitions(options = {}) {
   const settings = {
     childId: CHILD_PRESET_ID,
     maxDepth: Number(options.maxDepth ?? 10),
-    dispatcher: options.dispatcher === true,
+    dispatcher: options.dispatcher !== false,
     presentation: options.presentation === 'native' ? 'native' : 'ptc',
     tokenGuardChars: Number(options.tokenGuardChars ?? 24000),
     approvalNever: options.approvalNever !== false,

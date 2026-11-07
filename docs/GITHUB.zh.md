@@ -13,7 +13,7 @@ gh repo create dsh-moren-unlimited --public --source=. --remote=origin --push
 如果仓库已存在：
 
 ```bash
-git remote add origin https://github.com/<你的用户名>/dsh-moren-unlimited.git
+git remote add origin https://github.com/MorenLendan/dsh-moren-unlimited.git
 git push -u origin main
 gh repo edit --visibility public
 ```
@@ -25,7 +25,7 @@ gh repo edit --visibility public
 
 ```bash
 cd dsh-moren-unlimited
-GITHUB_USER=<你的用户名> GITHUB_TOKEN=<token> ./scripts/publish-github.sh
+GITHUB_USER=MorenLendan GITHUB_TOKEN=<token> ./scripts/publish-github.sh
 ```
 
 脚本会：
@@ -40,19 +40,19 @@ GITHUB_USER=<你的用户名> GITHUB_TOKEN=<token> ./scripts/publish-github.sh
 ```bash
 # 1) 网页创建 public 仓库（不要初始化 README）
 # 2) 推送
-git remote add origin https://github.com/<你的用户名>/dsh-moren-unlimited.git
+git remote add origin https://github.com/MorenLendan/dsh-moren-unlimited.git
 git push -u origin main
 ```
 
 ## 发布后检查
 
 - 仓库 Settings → General → 底部应显示 **Public**
-- README 顶部的 `YOUR_GITHUB_NAME` 替换成你的用户名：
+- README 顶部的 `MorenLendan` 替换成你的用户名：
 
 ```bash
-grep -rl "YOUR_GITHUB_NAME" . --exclude-dir=.git
+grep -rl "MorenLendan" . --exclude-dir=.git
 # 逐个替换，或：
-grep -rl "YOUR_GITHUB_NAME" . --exclude-dir=.git | xargs sed -i "s/YOUR_GITHUB_NAME/<你的用户名>/g"
+grep -rl "MorenLendan" . --exclude-dir=.git | xargs sed -i "s/MorenLendan/MorenLendan/g"
 git commit -am "docs: point install commands at the real repository"
 git push
 ```

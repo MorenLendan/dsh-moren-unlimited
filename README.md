@@ -41,7 +41,7 @@ dsh --profile web
 **A. 本地目录（开发/自用，推荐）**
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_NAME/dsh-moren-unlimited.git
+git clone https://github.com/MorenLendan/dsh-moren-unlimited.git
 cd dsh-moren-unlimited
 
 # 一条命令：pnpm link + 写入 dsh.profile.bundles
@@ -51,7 +51,7 @@ node scripts/install.mjs --profile web
 **B. 直接 git 安装**
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_NAME/dsh-moren-unlimited.git
+git clone https://github.com/MorenLendan/dsh-moren-unlimited.git
 cd dsh-moren-unlimited
 node scripts/install.mjs --profile web
 ```
@@ -212,7 +212,17 @@ moren_snapshot({ action: "prune", keep: 10 })
 
 页面按钮等价于这些调用。恢复后建议重启 `dsh web`，让宿主补丁/预设状态完全回到快照点。
 
-### 4.4 purge 的宿主补丁回退
+### 4.4 恢复会保留插件本身
+
+从 `before-install` 这类旧快照恢复时，profile 的 `package.json` 会回到安装前。旧实现会让 Moren 插件本身一起消失，下一次重启后模式与页面都不见了，看起来像「回退坏了」。现在恢复的最后一步会自动补回：
+
+- `dependencies["dsh-moren-unlimited"] = "link:<插件目录>"`
+- `dsh.profile.bundles` 里的 `dsh-moren-unlimited`
+- `node_modules/dsh-moren-unlimited` 链接（缺失时）
+
+要真正卸载插件请用 `node scripts/install.mjs --remove`，不要用回退。
+
+### 4.5 purge 的宿主补丁回退
 
 purge 的 `.dshpurge.bak` 由 purge 自己管理。Moren 不会删除它们，也不会伪造。页面会显示：
 
@@ -256,6 +266,17 @@ purge 的 `.dshpurge.bak` 由 purge 自己管理。Moren 不会删除它们，�
 
 ---
 
+### 6.1 梁神完整性（有没有被阉割）
+
+- 9 个 LiangShen 预设模块是逐字节复制，SHA-256 与上游一致
+- 1.0.1 修复了 1.0.0 的两处偏差：漏掉的 `str-replace-editor` 行、`dispatcher` 默认 false
+- `tool-catalog.descriptionMaxLength` 恢复 200
+- 其余差异都是加法：子代理深度 10、子预设、`tool-workflow` 打开、`tool-web.fetch` 打开、审批 never、`moren_*` 工具
+
+逐行对照见 [docs/PARITY.zh.md](docs/PARITY.zh.md)。
+
+---
+
 ## 7. 配置
 
 profile 的 `cordis.patch.yml` 里覆盖 `moren-unlimited` 行配置（改完重启）：
@@ -267,14 +288,14 @@ profile 的 `cordis.patch.yml` 里覆盖 `moren-unlimited` 行配置（改完重
     enabled: true
     announceToAgent: false   # 是否向 agent 宣告插件
     approvalNever: true      # 本模式会话审批 never
-    dispatcher: false        # 梁神调度块（约 24KB，默认关，省 Token）
+    dispatcher: true         # 梁神调度块（约 24KB，默认开，保持完整；省 Token 可改 false）
     presentation: ptc        # ptc | native
     tokenGuardChars: 24000   # 0 = 关闭守卫
     autoRepairRollback: true
     snapshotKeep: 20
 ```
 
-`dispatcher: true` 会追加梁神的完整调度规则块（plan/task book/review/hand-off），Token 成本明显增加，按需开。
+`dispatcher: true`（默认）追加梁神的完整调度规则块（plan/task book/review/hand-off）；改为 `false` 可省约 24KB 提示词。
 
 ---
 
@@ -336,21 +357,18 @@ A: 不会。本插件不写 dsh 源码，也不写 purge 的 `.bak`；宿主补�
 gh repo create dsh-moren-unlimited --public --source=. --remote=origin --push
 
 # B. Token
-GITHUB_USER=<你的用户名> GITHUB_TOKEN=<token> ./scripts/publish-github.sh
+GITHUB_USER=MorenLendan GITHUB_TOKEN=<token> ./scripts/publish-github.sh
 ```
 
 手动：
 
 ```bash
-git remote add origin https://github.com/<你的用户名>/dsh-moren-unlimited.git
+git remote add origin https://github.com/MorenLendan/dsh-moren-unlimited.git
 git push -u origin main
 # 网页 Settings → 确认 Public
 ```
 
 详细说明与失败排查见 [docs/GITHUB.zh.md](docs/GITHUB.zh.md)。
-
-> README/docs 里的 `YOUR_GITHUB_NAME` 是占位符；发布后替换：
-> `grep -rl YOUR_GITHUB_NAME . --exclude-dir=.git | xargs sed -i "s/YOUR_GITHUB_NAME/<你的用户名>/g"`
 
 ---
 

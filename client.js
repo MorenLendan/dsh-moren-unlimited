@@ -254,7 +254,7 @@ window.__ModuleLoader__.load({
     }
 
     function Docs({ data }) {
-      const repo = 'https://github.com/YOUR_GITHUB_NAME/dsh-moren-unlimited'
+      const repo = 'https://github.com/MorenLendan/dsh-moren-unlimited'
       return h(React.Fragment, null,
         h(Card, { title: '安装' },
           h('pre', { className: 'moren-code' }, `# 1) 安装 DSH（已有可跳过）\nnpm i -g @deepseek-ai/dsh\n\n# 2) 安装本插件（本地目录）\ndsh plugin --profile web add link:/path/to/dsh-moren-unlimited\n\n# 或用 git\ndsh plugin --profile web add git+${repo}.git\n\n# 3) 重启 dsh web`),

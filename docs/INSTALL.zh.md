@@ -20,7 +20,7 @@ dsh --profile web --dump-config | head
 ## 1. 获取代码
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_NAME/dsh-moren-unlimited.git
+git clone https://github.com/MorenLendan/dsh-moren-unlimited.git
 cd dsh-moren-unlimited
 ```
 
@@ -109,7 +109,7 @@ pnpm add link:/path/to/dsh-moren-unlimited
 
 ```bash
 cd ~/.dsh/profiles/web
-pnpm add git+https://github.com/YOUR_GITHUB_NAME/dsh-moren-unlimited.git
+pnpm add git+https://github.com/MorenLendan/dsh-moren-unlimited.git
 # 再把 "dsh-moren-unlimited" 加进 dsh.profile.bundles
 ```
 

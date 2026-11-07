@@ -14,8 +14,8 @@
         announceToAgent: false
         # 会话进入本模式时把审批策略设为 never（只作用于本模式的会话）。
         approvalNever: true
-        # 梁神模式的调度者规则块（约 24KB）。默认关闭以节省 Token；需要完整梁神调度角色时改 true。
-        dispatcher: false
+        # 梁神模式的调度者规则块（约 24KB）。默认开启以保持梁神模式完整；省 Token 可改 false。
+        dispatcher: true
         # 大工具结果自动折叠阈值（字符）；0 关闭。
         tokenGuardChars: 24000
         # 启动时自动检查回退快照，损坏则建立新的健康基线。

@@ -109,6 +109,8 @@ moren_snapshot({ action: "restore", id: "2026-11-07T09-27-58-220Z-m17jx1" })
 
 恢复后重启 `dsh web`，让宿主补丁/预设拿到快照点状态。
 
+**保留插件本身**：恢复 `before-install` 这类快照时，profile `package.json` 会回到安装前；插件会自动补回自己的 `link:` 依赖、`dsh.profile.bundles` 行和 `node_modules` 链接。这样回退不会把 Moren 自己删掉。要卸载请用 `node scripts/install.mjs --remove`。
+
 ### 4.4 修复
 
 ```js
@@ -147,7 +149,19 @@ moren_snapshot({ action: "prune", keep: 10 })
 4. 检查磁盘空间/权限（目录需 0700，文件可写）
 ```
 
-### 场景 C：purge 回退不可用
+### 场景 C：purge 的维护备份
+
+purge 还有一条与 `.bak` 不同的回退线：插件包维护备份。
+
+```bash
+cd ~/.dsh/profiles/web/node_modules/dsh-purge-community
+node bin/community.js backup          # 创建维护备份
+node bin/community.js rollback <id>   # 恢复插件包版本
+```
+
+它备份的是已安装插件包（例如 `dsh-purge-community` 本身），**不覆盖宿主补丁**。Moren 页面「其它回退」会识别 `$DSH_HOME/dsh-purge-community/backups`。
+
+### 场景 D：purge 宿主回退不可用
 
 ```text
 1. 页面确认「无宿主备份」
@@ -155,7 +169,7 @@ moren_snapshot({ action: "prune", keep: 10 })
 3. 要恢复宿主补丁：打开 purge 面板 → 应用（生成 .bak）→ purge_revert
 ```
 
-### 场景 D：恢复错了
+### 场景 E：恢复错了
 
 ```text
 1. 每次 restore 都会先建 pre-restore 快照
