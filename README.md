@@ -1,5 +1,12 @@
 # Moren 无限制梁神模式（dsh-moren-unlimited）
 
+![Moren 无限制梁神模式](assets/banner.svg)
+
+[![Release](https://img.shields.io/github/v/release/MorenLendan/dsh-moren-unlimited)](https://github.com/MorenLendan/dsh-moren-unlimited/releases)
+[![License](https://img.shields.io/github/license/MorenLendan/dsh-moren-unlimited)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/MorenLendan/dsh-moren-unlimited?style=social)](https://github.com/MorenLendan/dsh-moren-unlimited)
+![DSH](https://img.shields.io/badge/DSH-0.2.2-2f6b4f)
+
 把 **DSH purge 的无限制模式**、**无限制子任务** 与 **梁神模式** 合成为一个原生 agent 预设，并带一个左侧栏入口：
 
 - 新建会话时多一个模式：**Moren无限制梁神模式**
