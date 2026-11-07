@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4 — 2026-11-07
+
+- 回退按钮兼容 shim 改为**同步早注入**，不再依赖 `uiSession` 注入；修复 1.0.3 中 `ctx.inject` 回调未执行导致按钮仍禁用
+- shim 优先用 `uiSession.current`，回退 `sessions.list.retainedBy.mainView`
+
 ## 1.0.3 — 2026-11-07
 
 - 修复 purge 对话回退按钮在 DSH 0.2.2 下无反应：补回 `uiWorkspace.selection` 会话绑定（`uiSession.current` / `sessions.list` 双来源）
